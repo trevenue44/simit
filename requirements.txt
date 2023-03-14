@@ -1,0 +1,9 @@
+appdirs==1.4.4
+attrs @ file:///opt/conda/conda-bld/attrs_1642510447205/work
+black==19.3b0
+certifi @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_0dbts0itox/croot/certifi_1669749553188/work/certifi
+click==8.0.3
+PyQt6==6.4.2
+PyQt6-Qt6==6.4.2
+PyQt6-sip==13.4.1
+toml @ file:///tmp/build/80754af9/toml_1616166611790/work
