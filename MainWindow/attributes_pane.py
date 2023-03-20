@@ -2,9 +2,9 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt
 
 
-class RightColumn(QWidget):
+class AttributesPane(QWidget):
     def __init__(self, parent=None):
-        super(RightColumn, self).__init__(parent)
+        super(AttributesPane, self).__init__(parent)
         self.initUI()
 
     def initUI(self):
