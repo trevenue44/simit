@@ -1,11 +1,15 @@
 from PyQt6.QtWidgets import QWidget, QLineEdit, QVBoxLayout, QComboBox, QLabel
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.sip import wrappertype
+
 from utils.components import QHLine
 from utils.functions import get_component_categories
 from components import COMPONENT_CATEGORY_MAPS
 
 
 class ComponentPane(QWidget):
+    component_selected = pyqtSignal(wrappertype)
+
     def __init__(self, parent=None):
         super(ComponentPane, self).__init__(parent)
         self.initUI()
@@ -40,8 +44,29 @@ class ComponentPane(QWidget):
         self.setLayout(self.layout)
 
     def on_component_category_change(self):
+        # get the selected category and the components in that category
         selected_category = self.component_categories.currentText().strip()
         selected_category_components = COMPONENT_CATEGORY_MAPS.get(selected_category)
-        for component in selected_category_components:
-            self.layout.addWidget(QLabel(component))
 
+        # clear existing components from layout
+        while self.layout.count() > 3:
+            item = self.layout.takeAt(3)
+            widget = item.widget()
+            if widget is not None:
+                self.layout.removeWidget(widget)
+                widget.deleteLater()
+
+        # add selected category components to the layout
+        for component in selected_category_components:
+            label = QLabel(component.name)
+            label.mousePressEvent = self.create_component_clicked_handler(component)
+            self.layout.addWidget(label)
+
+        # add stretch to the bottom to push all the components up
+        self.layout.addStretch()
+
+    def create_component_clicked_handler(self, component: QWidget):
+        def handle_component_clicked(event):
+            self.component_selected.emit(component)
+
+        return handle_component_clicked
