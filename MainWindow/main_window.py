@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout
+from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QToolBar
+from PyQt6.QtGui import QAction
 
 from .component_pane import ComponentPane
 from .canvas import Canvas
@@ -30,10 +31,29 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(container)
 
-        # connecting all necessary signals
-        self.connect_signals()
+        # create toolbar
+        self._createToolBar()
 
-    def connect_signals(self):
+        # connecting all necessary signals
+        self._connect_signals()
+
+    def _createToolBar(self):
+        # creating a toolbar
+        toolbar = QToolBar("Main Toolbar")
+        self.addToolBar(toolbar)
+
+        # adding actions to the toolbar
+        button_action = QAction("Wire", self)
+        button_action.setStatusTip("Wire")
+        button_action.triggered.connect(self._onWireToolClick)
+        button_action.setCheckable(True)
+
+        toolbar.addAction(button_action)
+
+    def _onWireToolClick(self, state: bool):
+        self.canvas.onWireToolClick(state)
+
+    def _connect_signals(self):
         # connecting a signal from the component pane to the canvas
         self.component_pane.component_selected.connect(self.component_selected_handler)
 
