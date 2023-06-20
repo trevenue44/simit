@@ -1,73 +1,52 @@
 from PyQt6.QtWidgets import (
+    QGraphicsSceneHoverEvent,
     QGraphicsSceneMouseEvent,
     QWidget,
     QGraphicsItem,
     QGraphicsObject,
 )
-from PyQt6.QtGui import QPainter, QPen
+from PyQt6.QtGui import QPainter, QPen, QPainterPath, QBrush
 from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QLineF, QObject
 from components.draggable_component import DraggableComponent
 
 
-# class Resistor(DraggableComponent):
-#     name = "Resistor"
-
-#     def __init__(self, parent=None):
-#         super(Resistor, self).__init__(parent)
-#         self.w = 70
-#         self.h = 20
-#         self.terminal_length = 15
-#         self.setFixedSize(self.w, self.h)
-#         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-
-#     def paintEvent(self, event):
-#         painter = QPainter(self)
-
-#         pen = QPen(Qt.GlobalColor.yellow, 2, Qt.PenStyle.SolidLine)
-
-#         painter.setPen(pen)
-
-#         body_w = self.w - (2 * self.terminal_length)
-
-#         point_a = (self.terminal_length, 0)
-#         point_b = (self.terminal_length + body_w, 0)
-#         point_c = (point_b[0], point_b[1] + self.h)
-#         point_d = (point_a[0], point_a[1] + self.h)
-
-#         painter.drawLine(*point_a, *point_b)
-#         painter.drawLine(*point_b, *point_c)
-#         painter.drawLine(*point_c, *point_d)
-#         painter.drawLine(*point_d, *point_a)
-
-#         # draw the terminals
-#         t1_a = (0, self.h // 2)
-#         t1_b = (self.terminal_length, self.h // 2)
-#         t2_a = (self.w - self.terminal_length, self.h // 2)
-#         t2_b = (self.w, self.h // 2)
-
-#         painter.drawLine(*t1_a, *t1_b)
-#         painter.drawLine(*t2_a, *t2_b)
-
-#         painter.end()
-
-#     def __str__(self) -> str:
-#         return self.name
-
-#     def __repr__(self):
-#         return self.name
-
-
-class Resistor(QGraphicsObject):
+class Resistor(QGraphicsItem):
     name = "Resistor"
 
-    terminalClicked = pyqtSignal(QPointF)
+    class Signals(QGraphicsObject):
+        terminalClicked = pyqtSignal(str, int)
+        componentMoved = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, compCount: int, parent=None):
         super(Resistor, self).__init__(parent)
+        self.uniqueID = f"{self.name}-{compCount}"
+
+        self.signals = self.Signals()
+
         self.w = 70
         self.h = 20
         self.terminal_length = 15
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
+
+        self.hovered_terminal = None
+        self.setAcceptHoverEvents(True)
+
+        # self.signals.componentMoved.connect(self.update)
+
+    # def hoverMoveEvent(self, event: QGraphicsSceneHoverEvent) -> None:
+    #     print("terminal hovered", self.hovered_terminal)
+    #     pos = self.mapToScene(event.pos())
+    #     terminal_positions = self.getTerminalPositions()
+    #     for terminal_position in terminal_positions:
+    #         distance = QLineF(pos, terminal_position).length()
+    #         if distance < 5:
+    #             self.hovered_terminal = terminal_position
+    #             self.update()
+    #             return
+
+    #     self.hovered_terminal = None
+    #     self.update()
+    #     super().hoverMoveEvent(event)
 
     def boundingRect(self):
         return QRectF(0, 0, self.w, self.h)
@@ -97,31 +76,24 @@ class Resistor(QGraphicsObject):
         painter.drawLine(t1_a, t1_b)
         painter.drawLine(t2_a, t2_b)
 
-    def get_terminal_positions(self):
+        # draw circle around the hovered terminal
+        if self.hovered_terminal is not None:
+            painter.setPen(QPen(Qt.GlobalColor.red, 2))
+            radius = 4
+            painter.drawEllipse(self.hovered_terminal, radius, radius)
+
+    def getTerminalPositions(self):
         t1_pos = self.mapToScene(0, self.h // 2)
         t2_pos = self.mapToScene(self.w, self.h // 2)
         # t1_pos = QPointF(0, self.h // 2)
         # t2_pos = QPointF(self.w, self.h // 2)
         return t1_pos, t2_pos
 
-    # def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-    #     print("mouse pressed")
-    #     if event.button() == Qt.MouseButton.LeftButton:
-    #         pos = event.pos()
-    #         terminal_positions = self.get_terminal_positions()
-    #         if pos in terminal_positions:
-    #             print("terminal clicked")
-    #             self.terminalClicked.emit(pos)
-    #         else:
-    #             super(Resistor, self).mousePressEvent(event)
-
-    #     # return super().mousePressEvent(event)
-
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
         print("mouse pressed")
         if event.button() == Qt.MouseButton.LeftButton:
             pos = self.mapToScene(event.pos())
-            terminal_positions = self.get_terminal_positions()
+            terminal_positions = self.getTerminalPositions()
             clicked_terminal = None
             min_distance = float(5)
 
@@ -133,9 +105,16 @@ class Resistor(QGraphicsObject):
                     clicked_terminal = terminal_pos
 
             if clicked_terminal is not None:
-                self.terminalClicked.emit(clicked_terminal)
+                terminal_index = terminal_positions.index(clicked_terminal)
+                # self.signals.terminalClicked.emit(clicked_terminal)
+                self.signals.terminalClicked.emit(self.uniqueID, terminal_index)
             else:
                 super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent) -> None:
+        print("mouse moved")
+        self.signals.componentMoved.emit()
+        return super().mouseMoveEvent(event)
 
     def __str__(self) -> str:
         return "Resistor"
