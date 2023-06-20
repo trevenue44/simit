@@ -31,22 +31,20 @@ class Resistor(QGraphicsItem):
         self.hovered_terminal = None
         self.setAcceptHoverEvents(True)
 
-        # self.signals.componentMoved.connect(self.update)
+        self.signals.componentMoved.connect(self.update)
 
-    # def hoverMoveEvent(self, event: QGraphicsSceneHoverEvent) -> None:
-    #     print("terminal hovered", self.hovered_terminal)
-    #     pos = self.mapToScene(event.pos())
-    #     terminal_positions = self.getTerminalPositions()
-    #     for terminal_position in terminal_positions:
-    #         distance = QLineF(pos, terminal_position).length()
-    #         if distance < 5:
-    #             self.hovered_terminal = terminal_position
-    #             self.update()
-    #             return
-
-    #     self.hovered_terminal = None
-    #     self.update()
-    #     super().hoverMoveEvent(event)
+    def hoverMoveEvent(self, event: QGraphicsSceneHoverEvent) -> None:
+        pos = event.pos()
+        terminal_positions = self.getTerminalPositions()
+        for terminal_position in terminal_positions:
+            distance = QLineF(pos, self.mapFromScene(terminal_position)).length()
+            if distance < float(5):
+                self.hovered_terminal = self.mapFromScene(terminal_position)
+                break
+            else:
+                self.hovered_terminal = None
+        self.update()
+        return super().hoverMoveEvent(event)
 
     def boundingRect(self):
         return QRectF(0, 0, self.w, self.h)
@@ -78,8 +76,8 @@ class Resistor(QGraphicsItem):
 
         # draw circle around the hovered terminal
         if self.hovered_terminal is not None:
-            painter.setPen(QPen(Qt.GlobalColor.red, 2))
-            radius = 4
+            painter.setPen(QPen(Qt.GlobalColor.white, 1))
+            radius = 5
             painter.drawEllipse(self.hovered_terminal, radius, radius)
 
     def getTerminalPositions(self):
@@ -90,7 +88,6 @@ class Resistor(QGraphicsItem):
         return t1_pos, t2_pos
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        print("mouse pressed")
         if event.button() == Qt.MouseButton.LeftButton:
             pos = self.mapToScene(event.pos())
             terminal_positions = self.getTerminalPositions()
@@ -106,13 +103,11 @@ class Resistor(QGraphicsItem):
 
             if clicked_terminal is not None:
                 terminal_index = terminal_positions.index(clicked_terminal)
-                # self.signals.terminalClicked.emit(clicked_terminal)
                 self.signals.terminalClicked.emit(self.uniqueID, terminal_index)
             else:
                 super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        print("mouse moved")
         self.signals.componentMoved.emit()
         return super().mouseMoveEvent(event)
 
