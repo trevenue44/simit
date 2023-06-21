@@ -1,15 +1,16 @@
-from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItem
-from PyQt6.QtGui import QColor, QPainter
-from PyQt6.QtCore import QRectF, Qt, QPointF
+from typing import Type
+from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene
+from PyQt6.QtCore import Qt
 
+from components.general import GeneralComponent
 from components.wire import Wire, ComponentAndTerminalIndex
 
 
 class Canvas(QGraphicsView):
     def __init__(self, parent=None):
         super(Canvas, self).__init__(parent)
-        self.wire_tool_active = False
-        self.selected_terminal_positions = []
+        self.wireToolActive = False
+        self.selectedTerminals = []
 
         self.components = {}
         self.wires = {}
@@ -20,7 +21,7 @@ class Canvas(QGraphicsView):
         self.setScene(QGraphicsScene(self))
         self.setBackgroundBrush(Qt.GlobalColor.black)
 
-    def add_component(self, component: QGraphicsItem):
+    def addComponent(self, component: Type["GeneralComponent"]) -> None:
         comp = component(compCount=len(self.components))
         try:
             comp.signals.terminalClicked.connect(self.onTerminalClick)
@@ -30,37 +31,37 @@ class Canvas(QGraphicsView):
         self.scene().addItem(comp)
         self.components[comp.uniqueID] = comp
 
-    def onWireToolClick(self, wire_tool_state: bool):
-        self.wire_tool_active = wire_tool_state
-        if not self.selected_terminal_positions:
-            self.selected_terminal_positions = []
+    def onWireToolClick(self, wireToolState: bool):
+        self.wireToolActive = wireToolState
+        if not self.selectedTerminals:
+            self.selectedTerminals = []
 
-    def onTerminalClick(self, compID: str, terminal_index: int):
-        print(f"terminal {terminal_index} of {compID} clicked!")
-        print(self.selected_terminal_positions)
-        if self.wire_tool_active:
-            clicked_terminal = (compID, terminal_index)
-            if clicked_terminal in self.selected_terminal_positions:
+    def onTerminalClick(self, uniqueID: str, terminalIndex: int):
+        print(f"terminal {terminalIndex} of {uniqueID} clicked!")
+        print(self.selectedTerminals)
+        if self.wireToolActive:
+            clickedTerminal = (uniqueID, terminalIndex)
+            if clickedTerminal in self.selectedTerminals:
                 print("terminal already in list")
                 return
-            self.selected_terminal_positions.append(clicked_terminal)
+            self.selectedTerminals.append(clickedTerminal)
 
-            if len(self.selected_terminal_positions) == 2:
+            if len(self.selectedTerminals) == 2:
                 self.drawWire()
-                self.selected_terminal_positions = []
+                self.selectedTerminals = []
 
-        print("after terminal click:", self.selected_terminal_positions)
+        print("after terminal click:", self.selectedTerminals)
 
     def drawWire(self):
         print("drawing wire")
         start = ComponentAndTerminalIndex(
-            self.components.get(self.selected_terminal_positions[0][0]),
-            self.selected_terminal_positions[0][1],
+            self.components.get(self.selectedTerminals[0][0]),
+            self.selectedTerminals[0][1],
         )
         end = ComponentAndTerminalIndex(
-            self.components.get(self.selected_terminal_positions[1][0]),
-            self.selected_terminal_positions[1][1],
+            self.components.get(self.selectedTerminals[1][0]),
+            self.selectedTerminals[1][1],
         )
         wire = Wire(start, end)
         self.scene().addItem(wire)
-        print("after_drawing: ", self.selected_terminal_positions)
+        print("after_drawing: ", self.selectedTerminals)

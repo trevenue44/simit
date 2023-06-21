@@ -1,30 +1,21 @@
-from typing import Optional
+from typing import Optional, Tuple
+
 from PyQt6.QtWidgets import (
     QGraphicsSceneHoverEvent,
     QGraphicsSceneMouseEvent,
     QGraphicsItem,
-    QGraphicsObject,
 )
 from PyQt6.QtGui import QPen
-from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QLineF
+from PyQt6.QtCore import Qt, QRectF, QPointF, QLineF
+
+from .general import GeneralComponent
 
 
-class Resistor(QGraphicsItem):
+class Resistor(GeneralComponent):
     name = "Resistor"
 
-    class Signals(QGraphicsObject):
-        # signal sends (uniqueID, terminalIndex) as arguments.
-        terminalClicked = pyqtSignal(str, int)
-        componentMoved = pyqtSignal()
-
     def __init__(self, compCount: int, parent=None):
-        super(Resistor, self).__init__(parent)
-        # generate the uniqueID using the component name and the count.
-        # eg. Resistor-23
-        self.uniqueID = f"{self.name}-{compCount}"
-
-        # a signals object attribute of the instance to send appropriate signals from different resistors
-        self.signals = self.Signals()
+        super(Resistor, self).__init__(compCount, parent)
 
         # Geometric specifications of the component. Used in drawing too
         self.w = 70
@@ -101,7 +92,7 @@ class Resistor(QGraphicsItem):
 
         return closestTerminal
 
-    def getTerminalPositions(self):
+    def getTerminalPositions(self) -> Tuple[QPointF, QPointF]:
         t1_pos = self.mapToScene(0, self.h // 2)
         t2_pos = self.mapToScene(self.w, self.h // 2)
         return t1_pos, t2_pos
