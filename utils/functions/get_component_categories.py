@@ -1,7 +1,7 @@
 from components import COMPONENT_CATEGORY_MAPS
 
 
-def get_component_categories() -> list[str]:
+def getComponentCategories() -> list[str]:
     """
     Returns a list of all the component categories available.
     """

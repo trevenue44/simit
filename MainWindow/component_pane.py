@@ -1,13 +1,25 @@
+from typing import Type
+
 from PyQt6.QtWidgets import QWidget, QLineEdit, QVBoxLayout, QComboBox, QLabel
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal, QObject
+from PyQt6.sip import wrappertype
+
 from utils.components import QHLine
-from utils.functions import get_component_categories
+from utils.functions import getComponentCategories
 from components import COMPONENT_CATEGORY_MAPS
+from components.general import GeneralComponent
 
 
 class ComponentPane(QWidget):
+    class Signals(QObject):
+        componentSelected = pyqtSignal(wrappertype)
+
     def __init__(self, parent=None):
         super(ComponentPane, self).__init__(parent)
+
+        # a signals object attribute of the instance to send appropriate signals from different resistors
+        self.signals = self.Signals()
+
         self.initUI()
 
     def initUI(self):
@@ -16,22 +28,22 @@ class ComponentPane(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         # creating a search box to add to the top of the components list
-        self.search_box = QLineEdit()
-        self.search_box.setPlaceholderText("Search compnent")
-        self.layout.addWidget(self.search_box, alignment=Qt.AlignmentFlag.AlignTop)
+        self.searchBox = QLineEdit()
+        self.searchBox.setPlaceholderText("Search compnent")
+        self.layout.addWidget(self.searchBox, alignment=Qt.AlignmentFlag.AlignTop)
 
         # adding a line separator between the search bar and the rest
         self.layout.addWidget(QHLine())
 
         # creating a dropdown menu used to select component category
-        self.component_categories = QComboBox()
-        self.component_categories.setPlaceholderText("Choose a component category")
-        self.component_categories.addItems(get_component_categories())
-        self.component_categories.currentTextChanged.connect(
-            self.on_component_category_change
+        self.componentCategories = QComboBox()
+        self.componentCategories.setPlaceholderText("Choose a component category")
+        self.componentCategories.addItems(getComponentCategories())
+        self.componentCategories.currentTextChanged.connect(
+            self.onComponentCategoryChange
         )
         self.layout.addWidget(
-            self.component_categories, alignment=Qt.AlignmentFlag.AlignTop
+            self.componentCategories, alignment=Qt.AlignmentFlag.AlignTop
         )
 
         # adding stretch to the bottom to push all the components up
@@ -39,9 +51,30 @@ class ComponentPane(QWidget):
         # using the vertical box layout as the layout of the component pane
         self.setLayout(self.layout)
 
-    def on_component_category_change(self):
-        selected_category = self.component_categories.currentText().strip()
-        selected_category_components = COMPONENT_CATEGORY_MAPS.get(selected_category)
-        for component in selected_category_components:
-            self.layout.addWidget(QLabel(component))
+    def onComponentCategoryChange(self):
+        # get the selected category and the components in that category
+        selectedCategory = self.componentCategories.currentText().strip()
+        selectedCategoryComponents = COMPONENT_CATEGORY_MAPS.get(selectedCategory)
 
+        # clear existing components from layout
+        while self.layout.count() > 3:
+            item = self.layout.takeAt(3)
+            widget = item.widget()
+            if widget is not None:
+                self.layout.removeWidget(widget)
+                widget.deleteLater()
+
+        # add selected category components to the layout
+        for component in selectedCategoryComponents:
+            label = QLabel(component.name)
+            label.mousePressEvent = self.createComponentClickedHandler(component)
+            self.layout.addWidget(label)
+
+        # add stretch to the bottom to push all the components up
+        self.layout.addStretch()
+
+    def createComponentClickedHandler(self, component: Type["GeneralComponent"]):
+        def handle_component_clicked(event):
+            self.signals.componentSelected.emit(component)
+
+        return handle_component_clicked
