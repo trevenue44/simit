@@ -82,63 +82,72 @@ class Canvas(QGraphicsView):
         ##############################
 
     def updateCircuitNodes(self):
-        # create or update nodes after drawing wire
-        print("creating/updating nodes")
-
-        # get current number of nodes for uniqueID
-        nodeCount = len(self.circuitNodes)
-        if nodeCount == 0:
-            # create new node if there isn't any in there already.
-            self.createNewCircuitNode(
-                nodeCount=nodeCount, componentTerminals=self.selectedTerminals
-            )
-            # exit out of fxn
-            return
-
-        intersections = set()
-        nodesIntersectedWith: List[str] = []
-
-        # if there are existing nodes
-        for nodeID in self.circuitNodes.keys():
-            # check to see if new connection is part of an existing node
-            existingNode = self.circuitNodes.get(nodeID)
-
-            existingTerminalsSet = set(existingNode.componentTerminals)
-            newTerminalsSet = set(self.selectedTerminals)
-
-            # intersection of component terminals of existing nodes and new connection would tell if new connection belongs to an existing node
-            # possible that it would contain more than one
-            # this will occur in parrallel connections
-            intersection = existingTerminalsSet.intersection(newTerminalsSet)
-
-            if len(intersections) != 0:
-                # if there's at least one intersection with the node,
-                # keep track of the node
-                nodesIntersectedWith.append(nodeID)
-
-            # keep track of all the intersections
-            intersections = intersections.union(intersection)
-
-        # if new connection belongs to and existing node
-        if len(intersections) == 1 and len(nodesIntersectedWith) == 1:
-            # append the componentTerminal that is NOT already in the componentTerminals of the node.
-            newTerminalSet = newTerminalsSet.difference(intersection)
-            for terminal in iter(newTerminalSet):
-                self.circuitNodes.get(nodeID).componentTerminals.append(terminal)
-        elif len(intersections) == 2 and len(nodesIntersectedWith) == 2:
-            # there is a short ciruit
-            # there new connection intersects with more than one node
-            ...
-        elif len(intersections) == 2 and len(nodesIntersectedWith) == 1:
-            # there is a parallel connection between the two components whose terminals are involved.
-            # what should we do??
-            ...
-        elif len(intersections) == 0 and len(nodesIntersectedWith) == 0:
-            # if new connection doesn't belong to an existing node
+        if len(self.circuitNodes) == 0:
+            # there are no existing nodes
             # create a new node
             self.createNewCircuitNode(
-                nodeCount=nodeCount, componentTerminals=self.selectedTerminals
+                nodeCount=len(self.circuitNodes),
+                componentTerminals=self.selectedTerminals,
             )
+            return
+
+        # keep track of the newTerminals that are already node(s)
+        terminalIntersections: set = set()
+        # keep track of the nodes the new terminals intersect with
+        nodesIntersectedWith: set = set()
+
+        # if there are already circuitNodes
+        # loops through the circuit nodes
+        for nodeID in self.circuitNodes.keys():
+            circuitNode = self.circuitNodes.get(nodeID)
+            # compare the terminals involved in each node to the terminals involved in the new conection
+            newTerminals = set(self.selectedTerminals)
+            oldTerminals = set(circuitNode.componentTerminals)
+
+            intersections = newTerminals.intersection(oldTerminals)
+
+            if len(intersections) == 0:
+                # means that new terminasl don't intersect with the node
+                continue
+            elif len(intersections) == 1:
+                # only one of the new terminals intersect with current node
+                # update the sets outside the loop that keep track of the terminals and nodes intersected with
+                terminalIntersections.add(next(iter(intersections)))
+                nodesIntersectedWith.add(nodeID)
+            elif len(intersections) == 2:
+                # both new terminals belong to this same node
+                # add both new terminals to the terminal intersections above
+                for intersection in iter(intersections):
+                    terminalIntersections.add(intersection)
+                # update the nodeIntersected with
+                nodesIntersectedWith.add(nodeID)
+
+        if len(nodesIntersectedWith) == 0 and len(terminalIntersections) == 0:
+            # the new connection doesn't belong to any old node
+            # create a new node for it
+            self.createNewCircuitNode(
+                nodeCount=len(self.circuitNodes),
+                componentTerminals=self.selectedTerminals,
+            )
+        elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 1:
+            # connection is already part of a single node.
+            # we add the new terminal that's not already part of that node, to the node
+            # get the nodeID
+            nodeID = next(iter(nodesIntersectedWith))
+            # get the terminals involved in the node
+            componentTerminals = self.circuitNodes.get(nodeID).componentTerminals.copy()
+            for newComponentTerminal in self.selectedTerminals:
+                componentTerminals.append(newComponentTerminal)
+            # remove duplicates
+            componentTerminals = list(set(componentTerminals))
+            # set the componentTerminals of the node to the new componentTerminals
+            self.circuitNodes.get(nodeID).componentTerminals = componentTerminals
+        elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 2:
+            # parallel connection between the two components involved
+            print("PARALLEL CONNECTION")
+        elif len(nodesIntersectedWith) == 2 and len(terminalIntersections) == 2:
+            # short circuit between the two nodes
+            print("SHORT CIRCUIT BETWEEN NODE")
 
     def createNewCircuitNode(
         self, nodeCount: int, componentTerminals: List[Tuple[str, int]]
