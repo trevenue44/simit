@@ -18,6 +18,9 @@ class VoltageSource(GeneralComponent):
         self.h = 20
         self.terminalLength = 25
 
+        # update data attribute
+        self.data = {"V": [10, "kV"]}
+
     def boundingRect(self):
         return QRectF(0, 0, self.w, self.h)
 

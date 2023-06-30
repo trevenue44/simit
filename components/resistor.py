@@ -17,6 +17,9 @@ class Resistor(GeneralComponent):
         self.h = 20
         self.terminalLength = 15
 
+        # update data attribute
+        self.data = {"R": [100.00, "kOhms"]}
+
     def paint(self, painter: QPainter, option, widget):
         super().paint(painter, option, widget)
         pen = QPen(Qt.GlobalColor.yellow, 2, Qt.PenStyle.SolidLine)

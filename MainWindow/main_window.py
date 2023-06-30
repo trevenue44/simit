@@ -47,12 +47,20 @@ class MainWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         # adding actions to the toolbar
-        button_action = QAction("Wire", self)
-        button_action.setStatusTip("Wire")
-        button_action.triggered.connect(self._onWireToolClick)
-        button_action.setCheckable(True)
+        wire_tool = QAction("Wire", self)
+        wire_tool.setStatusTip("Wire")
+        wire_tool.triggered.connect(self._onWireToolClick)
+        wire_tool.setCheckable(True)
+        toolbar.addAction(wire_tool)
 
-        toolbar.addAction(button_action)
+        # add simulate action
+        simulate_button = QAction("Simulate", self)
+        simulate_button.setStatusTip("Simulate circuit on canvas")
+        simulate_button.triggered.connect(self._onSimulateButtonClick)
+        toolbar.addAction(simulate_button)
+
+    def _onSimulateButtonClick(self):
+        self.canvas.onSimulateButtonClick()
 
     def _onWireToolClick(self, state: bool):
         self.canvas.onWireToolClick(state)

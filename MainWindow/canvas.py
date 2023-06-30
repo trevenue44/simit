@@ -14,7 +14,7 @@ class Canvas(QGraphicsView):
         self.wireToolActive = False
         self.selectedTerminals = []
 
-        self.components = {}
+        self.components: Dict[str, GeneralComponent] = {}
         self.wires = {}
 
         # dictionary to store circuit nodes based on their uniqueIDs
@@ -58,7 +58,6 @@ class Canvas(QGraphicsView):
         print("after terminal click:", self.selectedTerminals)
 
     def drawWire(self):
-        print("drawing wire")
         start = ComponentAndTerminalIndex(
             self.components.get(self.selectedTerminals[0][0]),
             self.selectedTerminals[0][1],
@@ -69,17 +68,8 @@ class Canvas(QGraphicsView):
         )
         wire = Wire(start, end)
         self.scene().addItem(wire)
-        print("after_drawing: ", self.selectedTerminals)
         # add new connection to existing nodes or create new nodes
         self.updateCircuitNodes()
-
-        # ######### print put current state of nodes
-        print("===========CIRCUIT NODES==========")
-        for circuitNode in self.circuitNodes.values():
-            print(circuitNode.uniqueID)
-            print(circuitNode.componentTerminals)
-            print("")
-        ##############################
 
     def updateCircuitNodes(self):
         if len(self.circuitNodes) == 0:
@@ -162,3 +152,9 @@ class Canvas(QGraphicsView):
             newCircuitNode.componentTerminals.append(componentTerminal)
         # add new node to the dict of nodes
         self.circuitNodes[newCircuitNode.uniqueID] = newCircuitNode
+
+    def onSimulateButtonClick(self):
+        print("simulating...")
+
+        for component in self.components.values():
+            print(component.data)

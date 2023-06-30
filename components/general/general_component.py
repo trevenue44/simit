@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List, Dict
 
 from PyQt6.QtWidgets import (
     QGraphicsItem,
@@ -23,6 +23,9 @@ class GeneralComponent(QGraphicsItem):
         # generate the uniqueID using the component name and the count.
         # eg. Resistor-23
         self.uniqueID = f"{self.name}-{compCount}"
+
+        # component data attribute
+        self.data: Dict[str, List[float, str]] = {}
 
         # a signals object attribute of the instance to send appropriate signals from different resistors
         self.signals = self.Signals()
