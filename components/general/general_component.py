@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, List, Dict
+from typing import Tuple, Optional, List, Dict, Union
 
 from PyQt6.QtWidgets import (
     QGraphicsItem,
@@ -8,6 +8,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import pyqtSignal, QPointF, QLineF, Qt
 from PyQt6.QtGui import QPainter, QPen
+
+componentDataType = Dict[str, List[Union[float, str]]]
 
 
 class GeneralComponent(QGraphicsItem):
@@ -25,7 +27,7 @@ class GeneralComponent(QGraphicsItem):
         self.uniqueID = f"{self.name}-{compCount}"
 
         # component data attribute
-        self.data: Dict[str, List[float, str]] = {}
+        self.data: componentDataType = {}
 
         # a signals object attribute of the instance to send appropriate signals from different resistors
         self.signals = self.Signals()

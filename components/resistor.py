@@ -18,7 +18,7 @@ class Resistor(GeneralComponent):
         self.terminalLength = 15
 
         # update data attribute
-        self.data = {"R": [100.00, "kOhms"]}
+        self.data = {"R": [100.00, "kOhm"]}
 
     def paint(self, painter: QPainter, option, widget):
         super().paint(painter, option, widget)

@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt
 from components.general import GeneralComponent
 from components.wire import Wire, ComponentAndTerminalIndex
 from SimulationBackend.middleware import CircuitNode
+from SimulationBackend.circuit_simulator import CircuitSimulator
 
 
 class Canvas(QGraphicsView):
@@ -156,5 +157,9 @@ class Canvas(QGraphicsView):
     def onSimulateButtonClick(self):
         print("simulating...")
 
-        for component in self.components.values():
-            print(component.data)
+        # create a circuit simulator instance with current data
+        circuitSimulator = CircuitSimulator(
+            components=self.components, circuitNodes=self.circuitNodes
+        )
+        # simulate the circuit
+        results = circuitSimulator.simulate()
