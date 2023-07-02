@@ -54,22 +54,22 @@ class CircuitSimulator:
         # add circuit components based on the componentsInfo
         for componentID in self.componentsInfo.keys():
             componentInfo = self.componentsInfo.get(componentID)
-            if "Resistor" in componentID:
-                # component is a resistor. eg: Resistor-0
-                # add resistor component to the circuit instance
-                node1 = componentInfo["node1"]
-                node2 = componentInfo["node2"]
-                (R_value, R_unit) = componentInfo.get("data").get("R")
-                circuit.R(componentID, node1, circuit.gnd, f"{R_value}@u_{R_unit}")
-                # adding current probe to the resistor to keep track of current flowing through resistor
-                circuit[f"R{componentID}"].plus.add_current_probe(circuit)
-            elif "VoltageSource" in componentID:
-                # component is a voltage source. eg: VoltageSource-0
-                # add voltage source component to the circuit instance
-                node1 = componentInfo["node1"]
-                node2 = componentInfo["node2"]
-                (V_value, V_unit) = componentInfo.get("data").get("V")
-                circuit.V(componentID, node1, circuit.gnd, f"{V_value}@u_{V_unit}")
+            # get component's nodes
+            node1 = componentInfo.get("node1")
+            node2 = componentInfo.get("node2")
+            if node1 and node2:
+                if "Resistor" in componentID:
+                    # component is a resistor. eg: Resistor-0
+                    # add resistor component to the circuit instance
+                    (R_value, R_unit) = componentInfo.get("data").get("R")
+                    circuit.R(componentID, node1, circuit.gnd, f"{R_value}@u_{R_unit}")
+                    # adding current probe to the resistor to keep track of current flowing through resistor
+                    circuit[f"R{componentID}"].plus.add_current_probe(circuit)
+                elif "VoltageSource" in componentID:
+                    # component is a voltage source. eg: VoltageSource-0
+                    # add voltage source component to the circuit instance
+                    (V_value, V_unit) = componentInfo.get("data").get("V")
+                    circuit.V(componentID, node1, circuit.gnd, f"{V_value}@u_{V_unit}")
 
         print("[INFO] PySpice Circuit Created")
         return circuit
@@ -81,7 +81,11 @@ class CircuitSimulator:
         # create a simulator instance
         simulator = circuit.simulator(temperature=25, nominal_temperature=25)
         # analyse the circuit
-        analysis = simulator.operating_point()
+        try:
+            analysis = simulator.operating_point()
+        except:
+            print("[ERROR] Circuit Simulation Failed.")
+            return None
 
         # get the results from the analysis
         results = self.getResultsFromAnalysis(analysis)
