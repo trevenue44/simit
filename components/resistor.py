@@ -17,12 +17,14 @@ class Resistor(GeneralComponent):
         self.h = 20
         self.terminalLength = 15
 
+        self.padding = 7
+
         # update data attribute
-        self.data = {"R": [100.00, "kOhms"]}
+        self.data = {"R": [100.00, "kOhm"]}
 
     def paint(self, painter: QPainter, option, widget):
         super().paint(painter, option, widget)
-        pen = QPen(Qt.GlobalColor.yellow, 2, Qt.PenStyle.SolidLine)
+        pen = QPen(Qt.GlobalColor.white, 2, Qt.PenStyle.SolidLine)
         painter.setPen(pen)
 
         body_w = self.w - (2 * self.terminalLength)
@@ -50,15 +52,14 @@ class Resistor(GeneralComponent):
         painter.drawLine(t2_a, t2_b)
 
     def boundingRect(self):
-        return QRectF(0, 0, self.w, self.h)
+        return QRectF(
+            -self.padding,
+            -self.padding,
+            self.w + (2 * self.padding),
+            self.h + (2 * self.padding),
+        )
 
     def getTerminalPositions(self) -> Tuple[QPointF, QPointF]:
         t1_pos = self.mapToScene(0, self.h // 2)
         t2_pos = self.mapToScene(self.w, self.h // 2)
         return t1_pos, t2_pos
-
-    def __str__(self) -> str:
-        return "Resistor"
-
-    def __repr__(self):
-        return "Resistor"

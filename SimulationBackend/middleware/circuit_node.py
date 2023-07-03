@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 
 class CircuitNode:
@@ -7,3 +7,4 @@ class CircuitNode:
     def __init__(self, nodeCount: int) -> None:
         self.uniqueID = f"{self.name}-{nodeCount}"
         self.componentTerminals: List[Tuple[str, int]] = []
+        self.data: Dict[str, List[str]] = {}

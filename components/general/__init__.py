@@ -1,2 +1,2 @@
-from .general_component import GeneralComponent
+from .general_component import GeneralComponent, componentDataType
 from .component_and_terminal_index import ComponentAndTerminalIndex
