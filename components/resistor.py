@@ -56,9 +56,3 @@ class Resistor(GeneralComponent):
         t1_pos = self.mapToScene(0, self.h // 2)
         t2_pos = self.mapToScene(self.w, self.h // 2)
         return t1_pos, t2_pos
-
-    def __str__(self) -> str:
-        return "Resistor"
-
-    def __repr__(self):
-        return "Resistor"
