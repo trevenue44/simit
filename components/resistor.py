@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 
-from PyQt6.QtGui import QPen, QPainter
+from PyQt6.QtWidgets import QGraphicsTextItem, QGraphicsItem
+from PyQt6.QtGui import QPen, QPainter, QFont
 from PyQt6.QtCore import Qt, QRectF, QPointF, QLineF
 
 from .general import GeneralComponent
@@ -20,7 +21,7 @@ class Resistor(GeneralComponent):
         self.padding = 7
 
         # update data attribute
-        self.data = {"R": [100.00, "kOhm"]}
+        self.data = {"R": ["100.00", "kOhm"]}
 
     def paint(self, painter: QPainter, option, widget):
         super().paint(painter, option, widget)
@@ -50,6 +51,16 @@ class Resistor(GeneralComponent):
         # draw terminals from their endpoints
         painter.drawLine(t1_a, t1_b)
         painter.drawLine(t2_a, t2_b)
+
+        # write the resistance value on resistor
+        R = self.data.get("R")
+        if R:
+            text = f"R = {' '.join(R)}"
+
+            self.textItem.setPlainText(text)
+            self.textItem.setPos(
+                self.w / 2 - self.textItem.boundingRect().width() / 2, -20
+            )
 
     def boundingRect(self):
         return QRectF(

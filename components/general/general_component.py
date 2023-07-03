@@ -2,14 +2,15 @@ from typing import Tuple, Optional, List, Dict, Union
 
 from PyQt6.QtWidgets import (
     QGraphicsItem,
+    QGraphicsTextItem,
     QGraphicsObject,
     QGraphicsSceneHoverEvent,
     QGraphicsSceneMouseEvent,
 )
 from PyQt6.QtCore import pyqtSignal, QPointF, QLineF, Qt
-from PyQt6.QtGui import QPainter, QPen
+from PyQt6.QtGui import QPainter, QPen, QFont
 
-componentDataType = Dict[str, List[Union[float, str]]]
+componentDataType = Dict[str, List[str]]
 
 
 class GeneralComponent(QGraphicsItem):
@@ -42,6 +43,12 @@ class GeneralComponent(QGraphicsItem):
 
         # update the component whenever it is moved
         self.signals.componentMoved.connect(self.update)
+
+        # initialize text item for displaying component information on component
+        self.textItem = QGraphicsTextItem(self)
+        self.textItem.setDefaultTextColor(Qt.GlobalColor.white)
+        self.textItem.setFont(QFont("Arial", 8))
+        self.textItem.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
 
     def paint(self, painter: QPainter, option, widget) -> None:
         # draw circle around the hovered terminal

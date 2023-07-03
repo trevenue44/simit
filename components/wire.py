@@ -64,7 +64,7 @@ class Wire(QGraphicsItem):
         if self.startPos is None or self.endPos is None:
             return
 
-        pen = QPen(Qt.GlobalColor.gray, 1.5, Qt.PenStyle.SolidLine)
+        pen = QPen(Qt.GlobalColor.darkGray, 1, Qt.PenStyle.SolidLine)
         painter.setPen(pen)
         painter.drawLine(self.startPos, self.endPos)
 
@@ -88,7 +88,10 @@ class Wire(QGraphicsItem):
 
             # Adjust the position of the text item to center it horizontally
             textWidth = self.textItem.boundingRect().width()
-            self.textItem.setPos(midpoint.x() - textWidth / 2, midpoint.y())
+            textHeight = self.textItem.boundingRect().height()
+            self.textItem.setPos(
+                midpoint.x() - textWidth / 2, midpoint.y() - textHeight / 2
+            )
 
     def getNodeVoltage(self) -> List[str] | None:
         if self.circuitNode:
