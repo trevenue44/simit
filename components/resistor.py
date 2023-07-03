@@ -22,7 +22,7 @@ class Resistor(GeneralComponent):
 
     def paint(self, painter: QPainter, option, widget):
         super().paint(painter, option, widget)
-        pen = QPen(Qt.GlobalColor.yellow, 2, Qt.PenStyle.SolidLine)
+        pen = QPen(Qt.GlobalColor.white, 2, Qt.PenStyle.SolidLine)
         painter.setPen(pen)
 
         body_w = self.w - (2 * self.terminalLength)

@@ -16,7 +16,7 @@ class Canvas(QGraphicsView):
         self.selectedTerminals = []
 
         self.components: Dict[str, GeneralComponent] = {}
-        self.wires = {}
+        self.wires: Dict[str, Wire] = {}
 
         # dictionary to store circuit nodes based on their uniqueIDs
         self.circuitNodes: Dict[str, CircuitNode] = {}
@@ -26,6 +26,12 @@ class Canvas(QGraphicsView):
     def initUI(self):
         self.setScene(QGraphicsScene(self))
         self.setBackgroundBrush(Qt.GlobalColor.black)
+
+    def updateEverything(self):
+        print("updating everything")
+        # updating all wires
+        for wireID in self.wires.keys():
+            self.wires.get(wireID).update()
 
     def addComponent(self, component: Type["GeneralComponent"]) -> None:
         comp = component(compCount=len(self.components))
@@ -67,20 +73,25 @@ class Canvas(QGraphicsView):
             self.components.get(self.selectedTerminals[1][0]),
             self.selectedTerminals[1][1],
         )
-        wire = Wire(start, end)
-        self.scene().addItem(wire)
+        wire = Wire(start, end, wireCount=len(self.wires))
         # add new connection to existing nodes or create new nodes
-        self.updateCircuitNodes()
+        node = self.updateCircuitNodes()
+        # add node to wire component to keep track of the data and changes
+        wire.setCircuitNode(node)
+        # add wire to scene
+        self.scene().addItem(wire)
+        # keep track of wire
+        self.wires[wire.uniqueID] = wire
 
     def updateCircuitNodes(self):
         if len(self.circuitNodes) == 0:
             # there are no existing nodes
             # create a new node
-            self.createNewCircuitNode(
+            node = self.createNewCircuitNode(
                 nodeCount=len(self.circuitNodes),
                 componentTerminals=self.selectedTerminals,
             )
-            return
+            return node
 
         # keep track of the newTerminals that are already node(s)
         terminalIntersections: set = set()
@@ -116,10 +127,11 @@ class Canvas(QGraphicsView):
         if len(nodesIntersectedWith) == 0 and len(terminalIntersections) == 0:
             # the new connection doesn't belong to any old node
             # create a new node for it
-            self.createNewCircuitNode(
+            node = self.createNewCircuitNode(
                 nodeCount=len(self.circuitNodes),
                 componentTerminals=self.selectedTerminals,
             )
+            return node
         elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 1:
             # connection is already part of a single node.
             # we add the new terminal that's not already part of that node, to the node
@@ -133,6 +145,7 @@ class Canvas(QGraphicsView):
             componentTerminals = list(set(componentTerminals))
             # set the componentTerminals of the node to the new componentTerminals
             self.circuitNodes.get(nodeID).componentTerminals = componentTerminals
+            return self.circuitNodes.get(nodeID)
         elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 2:
             # parallel connection between the two components involved
             print("PARALLEL CONNECTION")
@@ -153,6 +166,7 @@ class Canvas(QGraphicsView):
             newCircuitNode.componentTerminals.append(componentTerminal)
         # add new node to the dict of nodes
         self.circuitNodes[newCircuitNode.uniqueID] = newCircuitNode
+        return newCircuitNode
 
     def onSimulateButtonClick(self):
         print("simulating...")
@@ -163,3 +177,18 @@ class Canvas(QGraphicsView):
         )
         # simulate the circuit
         results = circuitSimulator.simulate()
+
+        print(results)
+
+        # set the simulated node voltages
+        self.setSimulatedNodeVoltages(results=results)
+        self.updateEverything()
+
+    def setSimulatedNodeVoltages(
+        self, results: Dict[str, Dict[str, List[str]]]
+    ) -> None:
+        voltages = results.get("voltages")
+        for nodeID in self.circuitNodes.keys():
+            nodeData = voltages.get(nodeID.lower())
+            # add node data to the node
+            self.circuitNodes.get(nodeID).data = {"V": nodeData}
