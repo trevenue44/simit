@@ -45,7 +45,7 @@ class Wire(QGraphicsItem):
         # Initialize the text item
         self.textItem = QGraphicsTextItem(self)
         self.textItem.setDefaultTextColor(Qt.GlobalColor.yellow)
-        self.textItem.setFont(QFont("Arial", 12))
+        self.textItem.setFont(QFont("Arial", 10))
         self.textItem.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
 
     def _extractTerminalPositions(self):

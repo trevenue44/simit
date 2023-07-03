@@ -37,7 +37,6 @@ class Canvas(QGraphicsView):
         comp = component(compCount=len(self.components))
         try:
             comp.signals.terminalClicked.connect(self.onTerminalClick)
-            print("terminal click signal connected")
         except Exception as e:
             ...
         self.scene().addItem(comp)
@@ -49,20 +48,16 @@ class Canvas(QGraphicsView):
             self.selectedTerminals = []
 
     def onTerminalClick(self, uniqueID: str, terminalIndex: int):
-        print(f"terminal {terminalIndex} of {uniqueID} clicked!")
-        print(self.selectedTerminals)
         if self.wireToolActive:
             clickedTerminal = (uniqueID, terminalIndex)
             if clickedTerminal in self.selectedTerminals:
-                print("terminal already in list")
+                # terminal already selected
                 return
             self.selectedTerminals.append(clickedTerminal)
 
             if len(self.selectedTerminals) == 2:
                 self.drawWire()
                 self.selectedTerminals = []
-
-        print("after terminal click:", self.selectedTerminals)
 
     def drawWire(self):
         start = ComponentAndTerminalIndex(
@@ -175,10 +170,13 @@ class Canvas(QGraphicsView):
         circuitSimulator = CircuitSimulator(
             components=self.components, circuitNodes=self.circuitNodes
         )
+
         # simulate the circuit
         results = circuitSimulator.simulate()
 
-        print(results)
+        if results is None:
+            # if simulation fails and there is no results
+            return
 
         # set the simulated node voltages
         self.setSimulatedNodeVoltages(results=results)
