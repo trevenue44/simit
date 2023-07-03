@@ -1,6 +1,5 @@
 from typing import Tuple
 
-from PyQt6.QtWidgets import QGraphicsItem, QStyleOptionGraphicsItem, QWidget
 from PyQt6.QtGui import QPainter, QPen
 from PyQt6.QtCore import Qt, QPointF, QRectF
 
