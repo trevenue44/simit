@@ -17,12 +17,18 @@ class VoltageSource(GeneralComponent):
         self.w = 70
         self.h = 20
         self.terminalLength = 25
+        self.padding = 7
 
         # update data attribute
         self.data = {"V": [10, "kV"]}
 
     def boundingRect(self):
-        return QRectF(0, 0, self.w, self.h)
+        return QRectF(
+            -self.padding,
+            -self.padding,
+            self.w + (2 * self.padding),
+            self.h + (2 * self.padding),
+        )
 
     def paint(self, painter: QPainter, option, widget) -> None:
         super().paint(painter, option, widget)
