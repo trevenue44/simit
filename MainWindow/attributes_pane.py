@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QComboBox,
 )
 from PyQt6.QtCore import Qt, QObject, pyqtSignal
-from PyQt6.QtGui import QFont, QDoubleValidator, QCursor
+from PyQt6.QtGui import QFont, QDoubleValidator, QCursor, QIcon
 
 from components.general import GeneralComponent
 from utils.components import QHLine
@@ -112,6 +112,7 @@ class AttributesPane(QWidget):
         deleteButton.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         deleteButton.setStatusTip(f"Delete {self.selectedComponent.uniqueID}")
         deleteButton.setProperty("class", "delete-btn")
+        deleteButton.setIcon(QIcon("./assets/bin-icon.png"))
         deleteButton.clicked.connect(self.onDeleteButtonClick)
         layout.addWidget(deleteButton)
         return layout
@@ -213,9 +214,18 @@ class AttributesPane(QWidget):
             value[0] = f"{0:.2f}"
         self.selectedComponent.setComponentData(property, value)
 
+    def componentDeselected(self):
+        self.clearLayout()
+        self.selectedComponent = None
+
     def onCanvasComponentSelect(self, selectedComponent: GeneralComponent):
         # set selected component
         self.selectedComponent = selectedComponent
+
+        # connect component deselected signal
+        self.selectedComponent.signals.componentDeselected.connect(
+            self.componentDeselected
+        )
 
         # clear current content of the attributes pane
         self.clearLayout()
