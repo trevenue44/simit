@@ -1,0 +1,48 @@
+/* styles.qss */
+
+/* Set the global background color and text color */
+QWidget {
+    /* background-color: #222222; */
+    background-color: darkGray;
+    color: #ffffff;
+    font-family: Verdana;
+}
+
+
+/* QLineEdit styles */
+QLineEdit {
+    background-color: #333333;
+    color: #ffffff;
+    border: 1px solid #aaaaaa;
+    padding: 4px;
+    border-radius: 2px;
+}
+
+QLineEdit:focus {
+    border-color: #ffffff;
+    background-color: #000000;
+}
+
+/* QToolBar styles */
+QToolBar {
+    background-color: #333333;
+    color: #ffffff;
+    border: none;
+    padding: 4px;
+}
+
+QToolBar QToolButton {
+    background-color: #333333;
+    color: #ffffff;
+    border: none;
+    padding: 4px;
+}
+
+QToolBar QToolButton:hover {
+    background-color: #555555;
+}
+
+QToolBar QToolButton:pressed,
+QToolBar QToolButton:checked {
+    background-color: #777777;
+}

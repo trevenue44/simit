@@ -17,11 +17,24 @@ class Resistor(GeneralComponent):
         self.w = 70
         self.h = 20
         self.terminalLength = 15
-
         self.padding = 7
 
         # update data attribute
-        self.data = {"R": ["100.00", "kOhm"]}
+        self.setComponentData("R", ["100.00", "kOhm"])
+
+        # call super initUI last after required attributes are set
+        super().initUI()
+
+    def updateText(self):
+        # write the resistance value on resistor
+        R = self.data.get("R")
+        if R:
+            text = f"R = {' '.join(R)}"
+
+            self.textItem.setPlainText(text)
+            self.textItem.setPos(
+                self.w / 2 - self.textItem.boundingRect().width() / 2, -20
+            )
 
     def paint(self, painter: QPainter, option, widget):
         super().paint(painter, option, widget)
@@ -51,16 +64,6 @@ class Resistor(GeneralComponent):
         # draw terminals from their endpoints
         painter.drawLine(t1_a, t1_b)
         painter.drawLine(t2_a, t2_b)
-
-        # write the resistance value on resistor
-        R = self.data.get("R")
-        if R:
-            text = f"R = {' '.join(R)}"
-
-            self.textItem.setPlainText(text)
-            self.textItem.setPos(
-                self.w / 2 - self.textItem.boundingRect().width() / 2, -20
-            )
 
     def boundingRect(self):
         return QRectF(

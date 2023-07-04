@@ -23,6 +23,7 @@ class ComponentPane(QWidget):
         self.initUI()
 
     def initUI(self):
+        self.setMinimumWidth(250)
         # virtical box layout to arrange components as a vertical list
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)

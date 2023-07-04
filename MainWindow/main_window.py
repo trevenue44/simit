@@ -17,7 +17,9 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("SIMIT")
-        self.resize(800, 600)
+        self.resize(1000, 800)
+        self.setMinimumWidth(1000)
+        self.setMinimumHeight(800)
 
         self.componentPane = ComponentPane(self)
         self.canvas = Canvas(self)
@@ -69,5 +71,11 @@ class MainWindow(QMainWindow):
         # connecting a signal from the component pane to the canvas
         self.componentPane.signals.componentSelected.connect(self.onComponentSelect)
 
+        # pass selected instance component to the attributes pane
+        self.canvas.signals.componentSelected.connect(self.onCanvasComponentSelect)
+
     def onComponentSelect(self, component: Type["GeneralComponent"]):
         self.canvas.addComponent(component)
+
+    def onCanvasComponentSelect(self, component: GeneralComponent):
+        self.attributesPane.onCanvasComponentSelect(component)

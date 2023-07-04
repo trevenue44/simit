@@ -1,7 +1,7 @@
 from typing import Type, Dict, List, Tuple
 
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal, QObject
 
 from components.general import GeneralComponent
 from components.wire import Wire, ComponentAndTerminalIndex
@@ -10,6 +10,9 @@ from SimulationBackend.circuit_simulator import CircuitSimulator
 
 
 class Canvas(QGraphicsView):
+    class Signals(QObject):
+        componentSelected = pyqtSignal(GeneralComponent)
+
     def __init__(self, parent=None):
         super(Canvas, self).__init__(parent)
         self.wireToolActive = False
@@ -18,8 +21,13 @@ class Canvas(QGraphicsView):
         self.components: Dict[str, GeneralComponent] = {}
         self.wires: Dict[str, Wire] = {}
 
+        self.selectedComponentsIDs: List[str] = []
+
         # dictionary to store circuit nodes based on their uniqueIDs
         self.circuitNodes: Dict[str, CircuitNode] = {}
+
+        # signals
+        self.signals = self.Signals()
 
         self.initUI()
 
@@ -27,20 +35,24 @@ class Canvas(QGraphicsView):
         self.setScene(QGraphicsScene(self))
         self.setBackgroundBrush(Qt.GlobalColor.black)
 
-    def updateEverything(self):
-        print("updating everything")
-        # updating all wires
-        for wireID in self.wires.keys():
-            self.wires.get(wireID).update()
-
     def addComponent(self, component: Type["GeneralComponent"]) -> None:
         comp = component(compCount=len(self.components))
         try:
             comp.signals.terminalClicked.connect(self.onTerminalClick)
+            comp.signals.componentSelected.connect(self.onComponentSelected)
+            comp.signals.componentDeselected.connect(self.onComponentDeselected)
         except Exception as e:
-            ...
+            print(f"[INFO] Some component signals not connected - Error: {e}")
         self.scene().addItem(comp)
         self.components[comp.uniqueID] = comp
+
+    def onComponentSelected(self, uniqueID: str):
+        self.selectedComponentsIDs.append(uniqueID)
+        # emit the component selected signal with the component instance
+        self.signals.componentSelected.emit(self.components.get(uniqueID))
+
+    def onComponentDeselected(self, uniqueID: str):
+        self.selectedComponentsIDs.remove(uniqueID)
 
     def onWireToolClick(self, wireToolState: bool):
         self.wireToolActive = wireToolState
@@ -180,7 +192,6 @@ class Canvas(QGraphicsView):
 
         # set the simulated node voltages
         self.setSimulatedNodeVoltages(results=results)
-        self.updateEverything()
 
     def setSimulatedNodeVoltages(
         self, results: Dict[str, Dict[str, List[str]]]
@@ -189,4 +200,4 @@ class Canvas(QGraphicsView):
         for nodeID in self.circuitNodes.keys():
             nodeData = voltages.get(nodeID.lower())
             # add node data to the node
-            self.circuitNodes.get(nodeID).data = {"V": nodeData}
+            self.circuitNodes.get(nodeID).setNodeData("V", nodeData)

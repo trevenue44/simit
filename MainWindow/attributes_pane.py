@@ -1,15 +1,200 @@
-from PyQt6.QtWidgets import QWidget
+from typing import Union, List
+
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QGraphicsScene,
+    QGraphicsView,
+    QGraphicsItem,
+    QHBoxLayout,
+    QPushButton,
+    QLineEdit,
+    QComboBox,
+)
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont, QDoubleValidator
+
+from components.general import GeneralComponent
+from utils.components import QHLine
 
 
 class AttributesPane(QWidget):
     def __init__(self, parent=None):
         super(AttributesPane, self).__init__(parent)
+        self.setProperty("class", "AttributesPane")
         self.initUI()
 
     def initUI(self):
-        self.move(0, 0)
-        self.resize(200, 600)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setStyleSheet("background-color: rgb(0, 0, 100);")
+        self.setMinimumWidth(250)
 
+        # vertical box layout to arrange everything vertically
+        self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        # self.layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+
+        # using the vertical box layout
+        self.setLayout(self.layout)
+
+        # selected component
+        self.selectedComponent: Union[GeneralComponent, None] = None
+
+    def clearLayout(self, layout=None):
+        if layout is None:
+            layout = self.layout
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                layout.removeWidget(widget)
+                widget.deleteLater()
+            else:
+                sub_layout = item.layout()
+                if layout is not None:
+                    self.clearLayout(sub_layout)
+
+    def createPreviewComponent(self):
+        previewComponent = type(self.selectedComponent)(compCount="X")
+        previewComponent.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
+        previewComponent.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
+        previewComponent.setAcceptHoverEvents(False)
+        return previewComponent
+
+    def createPreviewSection(self):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        # layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+        # heading of the preview section
+        previewLabel = QLabel("Component Preview", self)
+        previewLabel.setFont(QFont("Verdana", 15, 200))
+        layout.addWidget(previewLabel)
+        layout.setAlignment(previewLabel, Qt.AlignmentFlag.AlignTop)
+
+        # creating a graphics view and scene to add the preview item to
+        # create a graphics scene
+        graphicsScene = QGraphicsScene(self)
+        # create a graphics view
+        graphicsView = QGraphicsView(graphicsScene)
+        graphicsView.setBackgroundBrush(Qt.GlobalColor.black)
+        # add the graphics view to the layout
+        layout.addWidget(graphicsView)
+        layout.setAlignment(graphicsView, Qt.AlignmentFlag.AlignTop)
+        # create a preview instance of selected component
+        previewComponent = self.createPreviewComponent()
+
+        # add preview component to the scene
+        graphicsScene.addItem(previewComponent)
+        # set the scene rect to match the item size
+        graphicsScene.setSceneRect(previewComponent.boundingRect())
+        # set the fixed size of the view to match the scene's rect
+        graphicsView.setFixedHeight(int(3 * graphicsScene.sceneRect().size().height()))
+        return layout
+
+    def createIDSection(self):
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        # uniqueID label
+        uniqueIDLabel = QLabel(self.selectedComponent.uniqueID, self)
+        uniqueIDLabel.setFont(QFont("Verdana", 15))
+        uniqueIDLabel.setMargin(0)
+        layout.addWidget(uniqueIDLabel)
+        # delete component button
+        deleteButton = QPushButton("Delete", self)
+        deleteButton.setFont(QFont("Verdana", 15))
+        deleteButton.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(deleteButton)
+        return layout
+
+    def createAttributesSection(self):
+        # getting component data
+        data = self.selectedComponent.data.copy()
+
+        # creating the initial layout
+        layout = QVBoxLayout()
+
+        # create attributes heading if there are attributes
+        if len(data):
+            attributesHeading = QLabel("Attributes", self)
+            attributesHeading.setFont(QFont("Verdana", 15))
+            layout.addWidget(attributesHeading)
+
+        # float validator
+        # Create a QDoubleValidator
+        floatValidator = QDoubleValidator()
+        floatValidator.setNotation(QDoubleValidator.Notation.StandardNotation)
+        floatValidator.setDecimals(4)
+
+        # creating editable sections for each property
+        for property, value in zip(data.keys(), data.values()):
+            # property name, value and unit will be side by side
+            subLayout = QHBoxLayout()
+
+            # property name
+            propertyLabel = QLabel(f"{property} =")
+            propertyLabel.setFont(QFont("Verdana", 15))
+            subLayout.addWidget(propertyLabel)
+
+            # line input box to enable user edit value of property
+            propertyInputBox = QLineEdit(value[0], self)
+            propertyInputBox.setValidator(floatValidator)
+            subLayout.addWidget(propertyInputBox)
+
+            # using a drop down menu for property units
+            propertyUnitDropDown = QComboBox(self)
+            propertyUnitDropDown.addItems(self.getPropertyUnits(property))
+            subLayout.addWidget(propertyUnitDropDown)
+
+            # connecting signals to slots
+            propertyChangeHandler = lambda: self.handlePropertyInputSubmit(
+                property,
+                [
+                    propertyInputBox.text().strip(),
+                    propertyUnitDropDown.currentText().strip(),
+                ],
+            )
+            propertyInputBox.textChanged.connect(propertyChangeHandler)
+            propertyUnitDropDown.currentTextChanged.connect(propertyChangeHandler)
+
+            layout.addLayout(subLayout)
+
+        return layout
+
+    def getPropertyUnits(self, property: str) -> List[str]:
+        if property == "V":
+            return ["V", "kV"]
+        if property == "R":
+            return ["Ohm", "kOhm"]
+
+    def handlePropertyInputSubmit(self, property: str, value: List[str]):
+        if value[0]:
+            value[0] = f"{float(value[0]):.2f}"
+        else:
+            value[0] = f"{0:.2f}"
+        self.selectedComponent.setComponentData(property, value)
+
+    def onCanvasComponentSelect(self, selectedComponent: GeneralComponent):
+        # set selected component
+        self.selectedComponent = selectedComponent
+
+        # clear current content of the attributes pane
+        self.clearLayout()
+
+        # create the preview section
+        previewSection = self.createPreviewSection()
+        self.layout.addLayout(previewSection)
+        self.layout.setAlignment(previewSection, Qt.AlignmentFlag.AlignTop)
+        self.layout.addWidget(QHLine())
+
+        # create the ID section
+        IDSection = self.createIDSection()
+        self.layout.addLayout(IDSection)
+        self.layout.setAlignment(IDSection, Qt.AlignmentFlag.AlignTop)
+        self.layout.addWidget(QHLine())
+
+        # create attributes section
+        attributesSection = self.createAttributesSection()
+        self.layout.addLayout(attributesSection)
+        self.layout.setAlignment(attributesSection, Qt.AlignmentFlag.AlignTop)
+
+        # adding stretch to the bottom to push all components up
+        self.layout.addStretch()

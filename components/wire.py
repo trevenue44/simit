@@ -68,6 +68,7 @@ class Wire(QGraphicsItem):
         painter.setPen(pen)
         painter.drawLine(self.startPos, self.endPos)
 
+    def updateWireText(self):
         # write simulation results if there is some
         if self.circuitNode:
             # calculate the midpoint of the wire
@@ -100,4 +101,9 @@ class Wire(QGraphicsItem):
 
     def setCircuitNode(self, circuitNode: CircuitNode) -> None:
         self.circuitNode = circuitNode
-        self.update()
+        self.circuitNode.signals.nodeDataChange.connect(self.handleNodeDataChange)
+        # write node ID on wire
+        self.updateWireText()
+
+    def handleNodeDataChange(self):
+        self.updateWireText()
