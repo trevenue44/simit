@@ -7,7 +7,7 @@ class CircuitNode:
     name = "CircuitNode"
 
     class Signals(QObject):
-        nodeDataChange = pyqtSignal()
+        nodeDataChanged = pyqtSignal()
 
     def __init__(self, nodeCount: int) -> None:
         self.uniqueID = f"{self.name}-{nodeCount}"
@@ -19,4 +19,4 @@ class CircuitNode:
 
     def setNodeData(self, key, value):
         self.data[key] = value
-        self.signals.nodeDataChange.emit()
+        self.signals.nodeDataChanged.emit()

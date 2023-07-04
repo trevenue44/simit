@@ -101,7 +101,7 @@ class Wire(QGraphicsItem):
 
     def setCircuitNode(self, circuitNode: CircuitNode) -> None:
         self.circuitNode = circuitNode
-        self.circuitNode.signals.nodeDataChange.connect(self.handleNodeDataChange)
+        self.circuitNode.signals.nodeDataChanged.connect(self.handleNodeDataChange)
         # write node ID on wire
         self.updateWireText()
 

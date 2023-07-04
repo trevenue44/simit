@@ -192,12 +192,26 @@ class Canvas(QGraphicsView):
 
         # set the simulated node voltages
         self.setSimulatedNodeVoltages(results=results)
+        # set simulation results for components
+        self.setComponentsSimulationResults(results)
 
-    def setSimulatedNodeVoltages(
-        self, results: Dict[str, Dict[str, List[str]]]
-    ) -> None:
+    def setSimulatedNodeVoltages(self, results: Dict[str, Dict[str, List[str]]]):
         voltages = results.get("voltages")
         for nodeID in self.circuitNodes.keys():
             nodeData = voltages.get(nodeID.lower())
             # add node data to the node
             self.circuitNodes.get(nodeID).setNodeData("V", nodeData)
+
+    def setComponentsSimulationResults(self, results: Dict[str, Dict[str, List[str]]]):
+        currents = results.get("currents")
+        for componentID in self.components.keys():
+            for currentKey in currents.keys():
+                print(f"[INFO] {currentKey} {componentID}")
+                if componentID.lower() in currentKey:
+                    print("[INFO] setting current")
+                    # the current is for that component
+                    # set the current of that component to the simulation current
+                    self.components.get(componentID).setSimulationResults(
+                        "I", currents.get(currentKey)
+                    )
+                    break

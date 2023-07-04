@@ -157,6 +157,33 @@ class AttributesPane(QWidget):
 
             layout.addLayout(subLayout)
 
+        simulationResults = self.selectedComponent.simulationResults.copy()
+        print("simulation results", simulationResults)
+        # create attributes heading if there are attributes
+        if len(simulationResults):
+            simulationResultsHeading = QLabel("Simulation Results", self)
+            simulationResultsHeading.setFont(QFont("Verdana", 15))
+            layout.addWidget(simulationResultsHeading)
+
+        for result, value in zip(simulationResults.keys(), simulationResults.values()):
+            subLayout = QHBoxLayout()
+
+            # result label
+            resultLabel = QLabel(f"{result} =", self)
+            resultLabel.setFont(QFont("Verdana", 15))
+            subLayout.addWidget(resultLabel)
+
+            # an inactive lineinput box to enable user edit value of property
+            resultValue = QLineEdit(value[0], self)
+            resultValue.setDisabled(True)
+            subLayout.addWidget(resultValue)
+
+            # using QLabel for results unit
+            resultUnit = QLabel(f"{value[1]}", self)
+            subLayout.addWidget(resultUnit)
+
+            layout.addLayout(subLayout)
+
         return layout
 
     def getPropertyUnits(self, property: str) -> List[str]:

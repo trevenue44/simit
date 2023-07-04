@@ -11,6 +11,7 @@ from PyQt6.QtCore import pyqtSignal, QPointF, QLineF, Qt
 from PyQt6.QtGui import QPainter, QPen, QFont
 
 componentDataType = Dict[str, List[str]]
+simulationResultsType = Dict[str, List[str]]
 
 
 class GeneralComponent(QGraphicsItem):
@@ -36,6 +37,7 @@ class GeneralComponent(QGraphicsItem):
 
         # component data attribute
         self.data: componentDataType = {}
+        self.simulationResults: simulationResultsType = {}
 
         # a signals object attribute of the instance to send appropriate signals from different resistors
         self.signals = self.Signals()
@@ -83,6 +85,9 @@ class GeneralComponent(QGraphicsItem):
         self.data[key] = value
         # emit data changed signals to trigger text update
         self.signals.componentDataChanged.emit()
+
+    def setSimulationResults(self, key: str, value: List[str]):
+        self.simulationResults[key] = value
 
     def updateText(self):
         ...
