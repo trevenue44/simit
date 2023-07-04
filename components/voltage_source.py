@@ -19,7 +19,20 @@ class VoltageSource(GeneralComponent):
         self.padding = 7
 
         # update data attribute
-        self.data = {"V": [10, "kV"]}
+        self.setComponentData("V", ["10.00", "kV"])
+
+        super().initUI()
+
+    def updateText(self):
+        # write the voltage value
+        V = self.data.get("V")
+        if V:
+            text = f"V = {' '.join(V)}"
+
+            self.textItem.setPlainText(text)
+            self.textItem.setPos(
+                self.w / 2 - self.textItem.boundingRect().width() / 2, -20
+            )
 
     def boundingRect(self):
         return QRectF(

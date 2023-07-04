@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 
-from PyQt6.QtGui import QPen, QPainter
+from PyQt6.QtWidgets import QGraphicsTextItem, QGraphicsItem
+from PyQt6.QtGui import QPen, QPainter, QFont
 from PyQt6.QtCore import Qt, QRectF, QPointF, QLineF
 
 from .general import GeneralComponent
@@ -16,11 +17,24 @@ class Resistor(GeneralComponent):
         self.w = 70
         self.h = 20
         self.terminalLength = 15
-
         self.padding = 7
 
         # update data attribute
-        self.data = {"R": [100.00, "kOhm"]}
+        self.setComponentData("R", ["100.00", "kOhm"])
+
+        # call super initUI last after required attributes are set
+        super().initUI()
+
+    def updateText(self):
+        # write the resistance value on resistor
+        R = self.data.get("R")
+        if R:
+            text = f"R = {' '.join(R)}"
+
+            self.textItem.setPlainText(text)
+            self.textItem.setPos(
+                self.w / 2 - self.textItem.boundingRect().width() / 2, -20
+            )
 
     def paint(self, painter: QPainter, option, widget):
         super().paint(painter, option, widget)

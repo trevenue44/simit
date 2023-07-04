@@ -31,12 +31,8 @@ class Wire(QGraphicsItem):
         self.endPos = None
 
         # connect componentMoved signals
-        self.start.component.signals.componentMoved.connect(
-            self._extractTerminalPositions
-        )
-        self.end.component.signals.componentMoved.connect(
-            self._extractTerminalPositions
-        )
+        self.start.component.signals.componentMoved.connect(self.onComponentMoved)
+        self.end.component.signals.componentMoved.connect(self.onComponentMoved)
 
         self.circuitNode = None
 
@@ -57,6 +53,10 @@ class Wire(QGraphicsItem):
         if self.scene():
             self.scene().update()
 
+    def onComponentMoved(self):
+        self._extractTerminalPositions()
+        self.updateWireText()
+
     def boundingRect(self) -> QRectF:
         return QRectF(self.startPos, self.endPos).normalized()
 
@@ -64,10 +64,11 @@ class Wire(QGraphicsItem):
         if self.startPos is None or self.endPos is None:
             return
 
-        pen = QPen(Qt.GlobalColor.gray, 1.5, Qt.PenStyle.SolidLine)
+        pen = QPen(Qt.GlobalColor.darkGray, 1, Qt.PenStyle.SolidLine)
         painter.setPen(pen)
         painter.drawLine(self.startPos, self.endPos)
 
+    def updateWireText(self):
         # write simulation results if there is some
         if self.circuitNode:
             # calculate the midpoint of the wire
@@ -88,7 +89,10 @@ class Wire(QGraphicsItem):
 
             # Adjust the position of the text item to center it horizontally
             textWidth = self.textItem.boundingRect().width()
-            self.textItem.setPos(midpoint.x() - textWidth / 2, midpoint.y())
+            textHeight = self.textItem.boundingRect().height()
+            self.textItem.setPos(
+                midpoint.x() - textWidth / 2, midpoint.y() - textHeight / 2
+            )
 
     def getNodeVoltage(self) -> List[str] | None:
         if self.circuitNode:
@@ -97,4 +101,9 @@ class Wire(QGraphicsItem):
 
     def setCircuitNode(self, circuitNode: CircuitNode) -> None:
         self.circuitNode = circuitNode
-        self.update()
+        self.circuitNode.signals.nodeDataChanged.connect(self.handleNodeDataChange)
+        # write node ID on wire
+        self.updateWireText()
+
+    def handleNodeDataChange(self):
+        self.updateWireText()

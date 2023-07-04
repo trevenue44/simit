@@ -1,0 +1,82 @@
+/* styles.qss */
+
+/* Set the global background color and text color */
+QWidget {
+    background-color: #222222;
+    color: #ffffff;
+    font-family: Verdana;
+}
+
+
+/* QLineEdit styles */
+QLineEdit {
+    background-color: #333333;
+    color: #ffffff;
+    border: 1px solid #aaaaaa;
+    padding: 4px;
+    border-radius: 2px;
+}
+
+QLineEdit:focus {
+    border-color: #ffffff;
+    background-color: #000000;
+}
+
+/* QComboBox styles for the unit dropdown menu */
+QComboBox {
+    background-color: #333333;
+    color: #ffffff;
+    border: 1px solid #aaaaaa;
+    padding: 4px;
+    border-radius: 2px;
+    min-width: 100px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: right;
+    width: 20px;
+    background-color: #555555;
+    border-left: 1px solid #aaaaaa;
+    border-radius: 2px;
+}
+
+QComboBox::down-arrow {
+    image: url(./assets/drop-down.png);
+    width: 12px;
+    height: 12px;
+}
+
+/* QPushButton styles */
+QPushButton {
+    background-color: #500000;
+    color: #ffffff;
+    border: 1px solid #aaaaaa;
+    padding: 4px;
+    border-radius: 2px;
+}
+
+
+/* QToolBar styles */
+QToolBar {
+    background-color: #333333;
+    color: #ffffff;
+    border: none;
+    padding: 4px;
+}
+
+QToolBar QToolButton {
+    background-color: #333333;
+    color: #ffffff;
+    border: none;
+    padding: 4px;
+}
+
+QToolBar QToolButton:hover {
+    background-color: #555555;
+}
+
+QToolBar QToolButton:pressed,
+QToolBar QToolButton:checked {
+    background-color: #777777;
+}
