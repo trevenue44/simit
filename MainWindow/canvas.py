@@ -52,7 +52,7 @@ class Canvas(QGraphicsView):
             if component is not None:
                 self.scene().removeItem(component)
                 del self.components[componentID]
-        self.selectedComponentsIDs.clear()
+                component.setSelected(False)
 
     def rotateSelectedComponents(self):
         for componentID in self.selectedComponentsIDs:

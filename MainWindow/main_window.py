@@ -105,7 +105,7 @@ class MainWindow(QMainWindow):
         self.canvas.deleteComponents(componentIDs=[uniqueID])
 
     def onDeleteSelectedComponentsClick(self):
-        selectedComponentsIDs = self.canvas.selectedComponentsIDs
+        selectedComponentsIDs = self.canvas.selectedComponentsIDs.copy()
         if len(selectedComponentsIDs):
             button = QMessageBox.question(
                 self,
