@@ -1,0 +1,17 @@
+/* QLineEdit styles */
+QLineEdit {
+    border: 1px solid white;
+}
+
+/* QLabel styles */
+QLabel {
+    padding: 4px;
+}
+
+QLabel:hover {
+    background-color: #555555;;
+}
+
+QLabel:pressed {
+    background-color: #0077A3;
+}

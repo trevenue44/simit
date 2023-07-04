@@ -1,4 +1,7 @@
-QLineEdit {
-    border: 2px solid yellow;
-    border-radius: 50px;
+.delete-btn:hover {
+    background-color: #700000;
+}
+
+.delete-btn:pressed {
+    background-color: #900000;
 }

@@ -1,7 +1,8 @@
 from typing import Type
 
-from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QToolBar
-from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QToolBar, QMessageBox
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtCore import QSize
 
 from components.general import GeneralComponent
 
@@ -46,20 +47,32 @@ class MainWindow(QMainWindow):
     def _createToolBar(self):
         # creating a toolbar
         toolbar = QToolBar("Main Toolbar")
+        toolbar.setIconSize(QSize(28, 28))
         self.addToolBar(toolbar)
 
+        # add simulate action
+        simulate_button = QAction(QIcon("./assets/simulate-icon.png"), "Simulate", self)
+        simulate_button.setStatusTip("Simulate circuit on canvas")
+        simulate_button.triggered.connect(self._onSimulateButtonClick)
+        toolbar.addAction(simulate_button)
+
         # adding actions to the toolbar
-        wire_tool = QAction("Wire", self)
+        wire_tool = QAction(QIcon("./assets/wire-tool-icon.png"), "Wire", self)
         wire_tool.setStatusTip("Wire")
         wire_tool.triggered.connect(self._onWireToolClick)
         wire_tool.setCheckable(True)
         toolbar.addAction(wire_tool)
 
-        # add simulate action
-        simulate_button = QAction("Simulate", self)
-        simulate_button.setStatusTip("Simulate circuit on canvas")
-        simulate_button.triggered.connect(self._onSimulateButtonClick)
-        toolbar.addAction(simulate_button)
+        # adding actions to the toolbar
+        toolbar.addSeparator()
+        deleteSelectedComponentsButton = QAction(
+            QIcon("./assets/bin-icon.png"), "Delete Selected Components", self
+        )
+        deleteSelectedComponentsButton.setStatusTip("Wire")
+        deleteSelectedComponentsButton.triggered.connect(
+            self.onDeleteSelectedComponentsClick
+        )
+        toolbar.addAction(deleteSelectedComponentsButton)
 
     def _onSimulateButtonClick(self):
         self.canvas.onSimulateButtonClick()
@@ -74,8 +87,27 @@ class MainWindow(QMainWindow):
         # pass selected instance component to the attributes pane
         self.canvas.signals.componentSelected.connect(self.onCanvasComponentSelect)
 
+        # selected component on attributes pane is deleted
+        self.attributesPane.signals.deleteComponent.connect(self.onDeleteComponent)
+
     def onComponentSelect(self, component: Type["GeneralComponent"]):
         self.canvas.addComponent(component)
 
     def onCanvasComponentSelect(self, component: GeneralComponent):
         self.attributesPane.onCanvasComponentSelect(component)
+
+    def onDeleteComponent(self, uniqueID: str):
+        self.canvas.deleteComponents(componentIDs=[uniqueID])
+
+    def onDeleteSelectedComponentsClick(self):
+        selectedComponentsIDs = self.canvas.selectedComponentsIDs
+        if len(selectedComponentsIDs):
+            button = QMessageBox.question(
+                self,
+                "Confirm Delete",
+                "Are you sure you want to delete selected components?",
+                buttons=QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.Cancel,
+            )
+            if button == QMessageBox.StandardButton.Yes:
+                self.canvas.deleteComponents(componentIDs=selectedComponentsIDs)

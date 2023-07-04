@@ -12,20 +12,25 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QComboBox,
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QDoubleValidator
+from PyQt6.QtCore import Qt, QObject, pyqtSignal
+from PyQt6.QtGui import QFont, QDoubleValidator, QCursor
 
 from components.general import GeneralComponent
 from utils.components import QHLine
 
 
 class AttributesPane(QWidget):
+    class Signals(QObject):
+        deleteComponent = pyqtSignal(str)
+
     def __init__(self, parent=None):
         super(AttributesPane, self).__init__(parent)
-        self.setProperty("class", "AttributesPane")
         self.initUI()
 
     def initUI(self):
+        with open("./styles/attributes_pane.stylesheet.qss", "r") as f:
+            styleSheet = f.read()
+            self.setStyleSheet(styleSheet)
         self.setMinimumWidth(250)
 
         # vertical box layout to arrange everything vertically
@@ -35,6 +40,9 @@ class AttributesPane(QWidget):
 
         # using the vertical box layout
         self.setLayout(self.layout)
+
+        # signals
+        self.signals = self.Signals()
 
         # selected component
         self.selectedComponent: Union[GeneralComponent, None] = None
@@ -101,9 +109,16 @@ class AttributesPane(QWidget):
         # delete component button
         deleteButton = QPushButton("Delete", self)
         deleteButton.setFont(QFont("Verdana", 15))
-        deleteButton.setContentsMargins(0, 0, 0, 0)
+        deleteButton.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        deleteButton.setStatusTip(f"Delete {self.selectedComponent.uniqueID}")
+        deleteButton.setProperty("class", "delete-btn")
+        deleteButton.clicked.connect(self.onDeleteButtonClick)
         layout.addWidget(deleteButton)
         return layout
+
+    def onDeleteButtonClick(self):
+        self.signals.deleteComponent.emit(self.selectedComponent.uniqueID)
+        self.clearLayout()
 
     def createAttributesSection(self):
         # getting component data
@@ -158,7 +173,6 @@ class AttributesPane(QWidget):
             layout.addLayout(subLayout)
 
         simulationResults = self.selectedComponent.simulationResults.copy()
-        print("simulation results", simulationResults)
         # create attributes heading if there are attributes
         if len(simulationResults):
             simulationResultsHeading = QLabel("Simulation Results", self)

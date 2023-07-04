@@ -31,12 +31,8 @@ class Wire(QGraphicsItem):
         self.endPos = None
 
         # connect componentMoved signals
-        self.start.component.signals.componentMoved.connect(
-            self._extractTerminalPositions
-        )
-        self.end.component.signals.componentMoved.connect(
-            self._extractTerminalPositions
-        )
+        self.start.component.signals.componentMoved.connect(self.onComponentMoved)
+        self.end.component.signals.componentMoved.connect(self.onComponentMoved)
 
         self.circuitNode = None
 
@@ -56,6 +52,10 @@ class Wire(QGraphicsItem):
         self.update()
         if self.scene():
             self.scene().update()
+
+    def onComponentMoved(self):
+        self._extractTerminalPositions()
+        self.updateWireText()
 
     def boundingRect(self) -> QRectF:
         return QRectF(self.startPos, self.endPos).normalized()

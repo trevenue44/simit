@@ -46,6 +46,13 @@ class Canvas(QGraphicsView):
         self.scene().addItem(comp)
         self.components[comp.uniqueID] = comp
 
+    def deleteComponents(self, componentIDs: List[str]):
+        for componentID in componentIDs:
+            component = self.components.get(componentID)
+            if component is not None:
+                self.scene().removeItem(component)
+                del self.components[componentID]
+
     def onComponentSelected(self, uniqueID: str):
         self.selectedComponentsIDs.append(uniqueID)
         # emit the component selected signal with the component instance
@@ -204,14 +211,14 @@ class Canvas(QGraphicsView):
 
     def setComponentsSimulationResults(self, results: Dict[str, Dict[str, List[str]]]):
         currents = results.get("currents")
-        for componentID in self.components.keys():
+        components = self.components
+
+        for componentID in components.keys():
             for currentKey in currents.keys():
-                print(f"[INFO] {currentKey} {componentID}")
                 if componentID.lower() in currentKey:
-                    print("[INFO] setting current")
                     # the current is for that component
                     # set the current of that component to the simulation current
-                    self.components.get(componentID).setSimulationResults(
+                    components.get(componentID).setSimulationResults(
                         "I", currents.get(currentKey)
                     )
                     break
