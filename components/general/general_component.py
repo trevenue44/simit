@@ -157,3 +157,7 @@ class GeneralComponent(QGraphicsItem):
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent) -> None:
         self.signals.componentMoved.emit()
         return super().mouseMoveEvent(event)
+
+    def rotate(self):
+        newRotation = self.rotation() + 90
+        self.setRotation(newRotation)

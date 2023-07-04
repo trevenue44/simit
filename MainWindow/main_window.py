@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
     def _createToolBar(self):
         # creating a toolbar
         toolbar = QToolBar("Main Toolbar")
-        toolbar.setIconSize(QSize(28, 28))
+        toolbar.setIconSize(QSize(18, 18))
         self.addToolBar(toolbar)
 
         # add simulate action
@@ -56,14 +56,19 @@ class MainWindow(QMainWindow):
         simulate_button.triggered.connect(self._onSimulateButtonClick)
         toolbar.addAction(simulate_button)
 
-        # adding actions to the toolbar
+        # adding wire tool action to the toolbar
         wire_tool = QAction(QIcon("./assets/wire-tool-icon.png"), "Wire", self)
         wire_tool.setStatusTip("Wire")
         wire_tool.triggered.connect(self._onWireToolClick)
         wire_tool.setCheckable(True)
         toolbar.addAction(wire_tool)
 
-        # adding actions to the toolbar
+        # add rotate action to toolbar
+        simulate_button = QAction(QIcon("./assets/rotate-icon.png"), "Rotate", self)
+        simulate_button.triggered.connect(self.rotateSelectedComponent)
+        toolbar.addAction(simulate_button)
+
+        # adding delete button to the toolbar
         toolbar.addSeparator()
         deleteSelectedComponentsButton = QAction(
             QIcon("./assets/bin-icon.png"), "Delete Selected Components", self
@@ -111,3 +116,6 @@ class MainWindow(QMainWindow):
             )
             if button == QMessageBox.StandardButton.Yes:
                 self.canvas.deleteComponents(componentIDs=selectedComponentsIDs)
+
+    def rotateSelectedComponent(self):
+        self.canvas.rotateSelectedComponents()

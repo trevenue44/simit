@@ -53,6 +53,11 @@ class Canvas(QGraphicsView):
                 self.scene().removeItem(component)
                 del self.components[componentID]
 
+    def rotateSelectedComponents(self):
+        for componentID in self.selectedComponentsIDs:
+            component = self.components.get(componentID)
+            component.rotate()
+
     def onComponentSelected(self, uniqueID: str):
         self.selectedComponentsIDs.append(uniqueID)
         # emit the component selected signal with the component instance
