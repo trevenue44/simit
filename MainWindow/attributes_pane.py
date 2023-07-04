@@ -35,7 +35,7 @@ class AttributesPane(QWidget):
 
         # vertical box layout to arrange everything vertically
         self.layout = QVBoxLayout()
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setContentsMargins(5, 5, 5, 5)
         # self.layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
 
         # using the vertical box layout

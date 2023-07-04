@@ -3,10 +3,12 @@ from PyQt6.QtCore import Qt, QPointF, QRectF
 from PyQt6.QtGui import QPainter, QPen
 
 from .general import GeneralComponent
+from .types import ComponentCategory
 
 
 class Ground(GeneralComponent):
     name = "GND"
+    category = ComponentCategory.SOURCE
 
     def __init__(self, compCount: int, parent=None) -> None:
         super().__init__(compCount, parent)

@@ -6,7 +6,7 @@ from PyQt6.QtCore import QSize
 
 from components.general import GeneralComponent
 
-from .component_pane import ComponentPane
+from .components_pane import ComponentsPane
 from .canvas import Canvas
 from .attributes_pane import AttributesPane
 
@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
         self.setMinimumWidth(1000)
         self.setMinimumHeight(800)
 
-        self.componentPane = ComponentPane(self)
+        self.componentPane = ComponentsPane(self)
         self.canvas = Canvas(self)
         self.attributesPane = AttributesPane(self)
 
