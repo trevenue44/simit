@@ -158,6 +158,7 @@ class AttributesPane(QWidget):
             # using a drop down menu for property units
             propertyUnitDropDown = QComboBox(self)
             propertyUnitDropDown.addItems(self.getPropertyUnits(property))
+            propertyUnitDropDown.setCurrentText(value[1])
             subLayout.addWidget(propertyUnitDropDown)
 
             # connecting signals to slots
