@@ -4,6 +4,7 @@ black==19.3b0
 certifi
 click==8.0.3
 PyQt6==6.4.2
-PyQt6-Qt6==6.4.2
+PyQt6-Qt6==6.4.3
 PyQt6-sip==13.4.1
-toml
+PySpice==1.5
+python-dotenv==1.0.0
