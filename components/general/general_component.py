@@ -10,12 +10,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import pyqtSignal, QPointF, QLineF, Qt
 from PyQt6.QtGui import QPainter, QPen, QFont
 
-componentDataType = Dict[str, List[str]]
-simulationResultsType = Dict[str, List[str]]
+from ..types import ComponentCategory, componentDataType, simulationResultsType
 
 
 class GeneralComponent(QGraphicsItem):
     name: str = ...
+    category: ComponentCategory = ...
 
     class Signals(QGraphicsObject):
         # signal sends (uniqueID, terminalIndex) as arguments.

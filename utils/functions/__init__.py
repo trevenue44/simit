@@ -1,1 +1,0 @@
-from .get_component_categories import getComponentCategories

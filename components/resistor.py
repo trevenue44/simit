@@ -1,14 +1,15 @@
 from typing import Optional, Tuple
 
-from PyQt6.QtWidgets import QGraphicsTextItem, QGraphicsItem
-from PyQt6.QtGui import QPen, QPainter, QFont
-from PyQt6.QtCore import Qt, QRectF, QPointF, QLineF
+from PyQt6.QtGui import QPen, QPainter
+from PyQt6.QtCore import Qt, QRectF, QPointF
 
 from .general import GeneralComponent
+from .types import ComponentCategory
 
 
 class Resistor(GeneralComponent):
     name = "Resistor"
+    category = ComponentCategory.RESISTOR
 
     def __init__(self, compCount: int, parent=None):
         super(Resistor, self).__init__(compCount, parent)

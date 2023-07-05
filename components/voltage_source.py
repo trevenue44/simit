@@ -4,10 +4,12 @@ from PyQt6.QtGui import QPainter, QPen
 from PyQt6.QtCore import Qt, QPointF, QRectF
 
 from .general import GeneralComponent
+from .types import ComponentCategory
 
 
 class VoltageSource(GeneralComponent):
     name = "VoltageSource"
+    category = ComponentCategory.SOURCE
 
     def __init__(self, compCount: int, parent=None) -> None:
         super().__init__(compCount, parent)

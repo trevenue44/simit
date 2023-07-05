@@ -35,7 +35,7 @@ class AttributesPane(QWidget):
 
         # vertical box layout to arrange everything vertically
         self.layout = QVBoxLayout()
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setContentsMargins(5, 5, 5, 5)
         # self.layout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
 
         # using the vertical box layout
@@ -158,6 +158,7 @@ class AttributesPane(QWidget):
             # using a drop down menu for property units
             propertyUnitDropDown = QComboBox(self)
             propertyUnitDropDown.addItems(self.getPropertyUnits(property))
+            propertyUnitDropDown.setCurrentText(value[1])
             subLayout.addWidget(propertyUnitDropDown)
 
             # connecting signals to slots

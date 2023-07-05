@@ -1,16 +1,27 @@
-import itertools
-
 from .resistor import Resistor
 from .voltage_source import VoltageSource
 from .ground import Ground
 
-COMPONENT_CATEGORY_MAPS = {
-    "Resistors": sorted([Resistor], key=lambda cls: cls.__name__),
-    "Sources": sorted([VoltageSource, Ground], key=lambda cls: cls.__name__),
-}
+COMPONENT_CLASSES = sorted(
+    [Resistor, VoltageSource, Ground], key=lambda cls: cls.__name__
+)
 
-all = []
-for components in COMPONENT_CATEGORY_MAPS.values():
-    all.extend(components)
 
-COMPONENT_CATEGORY_MAPS["All"] = sorted(all, key=lambda cls: cls.__name__)
+from .types import ComponentCategory
+
+
+def getComponentClasses(
+    category: ComponentCategory | None = None, searchText: str | None = None
+):
+    result = COMPONENT_CLASSES
+    if category:
+        result = list(filter(lambda compCls: compCls.category == category, result))
+    if searchText:
+        result = list(
+            filter(
+                lambda compCls: (searchText.lower() in compCls.name.lower())
+                or (searchText.lower() in compCls.category.value.lower()),
+                result,
+            )
+        )
+    return result
