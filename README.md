@@ -1,6 +1,9 @@
 # simit
 
-<img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54" />
+<img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54" /> 
+<a href="https://github.com/psf/black">
+    <img src="https://img.shields.io/static/v1?label=code%20style&message=black&color=black&style=flat-square" height="28" alt="code style: black">
+</a>
 
 <p style="color: orange;">
 An electronic circuit simulation software, based on NGSpice simulation engine, built using Python and Qt.
@@ -38,7 +41,7 @@ $ cd simit
 $ pip install -r requirements.txt
 ```
 
-4.  `PySpice` requires NGSpice to be installed on the system for it's operation. Installing the requirments above already installs the `PySpice` itself but not the NGSpice.
+4.  `PySpice` requires NGSpice to be installed on the system for its operation. Installing the requirments above already installs the `PySpice` itself but not the NGSpice.
 
     4.1 Installing PySpice on windows
 
