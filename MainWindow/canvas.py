@@ -35,14 +35,17 @@ class Canvas(QGraphicsView):
         """
         Function to set the scene and some initial flags of the GraphicsView for optimization and behaviour
         """
+
+        self.setScene(QGraphicsScene(self))
+        self.setBackgroundBrush(Qt.GlobalColor.black)
+
         self.setOptimizationFlag(
             QGraphicsView.OptimizationFlag.DontAdjustForAntialiasing, True
         )
         # RubberBandDrag mode allows the selection of multiple components by dragging to draw a rectangle around them
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
 
-        self.setScene(QGraphicsScene(self))
-        self.setBackgroundBrush(Qt.GlobalColor.black)
+        self.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
     def addComponent(self, component: Type["GeneralComponent"]) -> None:
         comp = component(compCount=len(self.components))
