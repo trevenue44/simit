@@ -14,8 +14,8 @@ class Ground(GeneralComponent):
         super().__init__(compCount, parent)
 
         # Geometry specifications of the voltage source
-        self.w = 35
-        self.h = 45
+        self.w = 40
+        self.h = 40
         self.terminalLength = 30
         self.padding = 7
 

@@ -1,8 +1,9 @@
 from typing import Type, Dict, List, Tuple
 
-from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene
+from PyQt6.QtWidgets import QGraphicsView
 from PyQt6.QtCore import Qt, pyqtSignal, QObject
 
+from .grid_scene import GridScene
 from components.general import GeneralComponent
 from components.wire import Wire, ComponentAndTerminalIndex
 from SimulationBackend.middleware import CircuitNode
@@ -36,8 +37,8 @@ class Canvas(QGraphicsView):
         Function to set the scene and some initial flags of the GraphicsView for optimization and behaviour
         """
 
-        self.setScene(QGraphicsScene(self))
-        self.setBackgroundBrush(Qt.GlobalColor.black)
+        self.setScene(GridScene(self))
+        # self.setBackgroundBrush(Qt.GlobalColor.black)
 
         self.setOptimizationFlag(
             QGraphicsView.OptimizationFlag.DontAdjustForAntialiasing, True

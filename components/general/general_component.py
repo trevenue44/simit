@@ -11,6 +11,7 @@ from PyQt6.QtCore import pyqtSignal, QPointF, QLineF, Qt
 from PyQt6.QtGui import QPainter, QPen, QFont
 
 from ..types import ComponentCategory, componentDataType, simulationResultsType
+import constants
 
 
 class GeneralComponent(QGraphicsItem):
@@ -156,7 +157,11 @@ class GeneralComponent(QGraphicsItem):
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent) -> None:
         self.signals.componentMoved.emit()
-        return super().mouseMoveEvent(event)
+        # set new position based on grid
+        new_pos = event.scenePos()
+        x = int(new_pos.x() / constants.GRID_SIZE) * constants.GRID_SIZE
+        y = int(new_pos.y() / constants.GRID_SIZE) * constants.GRID_SIZE
+        self.setPos(x, y)
 
     def rotate(self):
         newRotation = self.rotation() + 90
