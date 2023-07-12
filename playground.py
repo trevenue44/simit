@@ -2,12 +2,9 @@ import typing
 from PyQt6 import QtWidgets, QtGui, QtCore
 from PyQt6.QtCore import Qt, QPointF, QRectF
 from PyQt6.QtGui import QPainter, QColor
-from PyQt6.QtWidgets import (
-    QGraphicsItem,
-    QStyleOptionGraphicsItem,
-    QWidget,
-    QGraphicsView,
-)
+from PyQt6.QtWidgets import QGraphicsItem, QGraphicsSceneMouseEvent
+
+import logging
 
 GRID_SIZE = 40
 
@@ -62,23 +59,37 @@ class GridScene(QtWidgets.QGraphicsScene):
 
 
 class Wire(QtWidgets.QGraphicsItem):
-    def __init__(self, startTerminalPosition: QtCore.QPointF, parent: QGraphicsItem | None = None) -> None:
+    def __init__(
+        self, startTerminalPosition: QtCore.QPointF, parent: QGraphicsItem | None = None
+    ) -> None:
         super().__init__(parent)
         self.refPoint = startTerminalPosition
+        self.points = [startTerminalPosition]
+        self.possibleNextPoint = None
 
+    def addNewPoint(self, point: QtCore.QPointF):
+        self.points.append(point)
+        self.refPoint = self.points[-1]
+        self.update()
+        if self.scene():
+            self.scene().update()
 
-class WireSegment(QtWidgets.QGraphicsItem):
-    def __init__(self, start: QPointF = None, end: QPointF = None, parent=None):
-        super().__init__(parent)
-        self.start = start if start is not None else QPointF(40, 40)
-        self.end = end if end is not None else QPointF(40, 200)
+    def paint(self, painter: QPainter, option, widget):
+        painter.setPen(QtGui.QPen(QColor(255, 20, 20), 2))
+        for index in range(len(self.points) - 1):
+            start = self.mapToScene(self.points[index])
+            end = self.mapToScene(self.points[index + 1])
+            painter.drawLine(start, end)
 
-    def paint(self, painter: QPainter, option, widget) -> None:
-        painter.setPen(QtGui.QPen(QColor(255, 20, 20), 1))
-        painter.drawLine(self.start, self.end)
+        if self.possibleNextPoint is not None:
+            painter.drawLine(self.refPoint, self.mapToScene(self.possibleNextPoint))
 
     def boundingRect(self) -> QRectF:
-        return QRectF(self.start, self.end).normalized()
+        return QRectF(QPointF(10, 10), QtCore.QSizeF(20, 20))
+
+    def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
+        print("Wire Pressed")
+        return super().mousePressEvent(event)
 
 
 class View(QtWidgets.QGraphicsView):
@@ -102,26 +113,52 @@ class View(QtWidgets.QGraphicsView):
 
         self.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
+    def normalizePointToGrid(self, p: QPointF) -> QPointF:
+        x = round(p.x() / GRID_SIZE) * GRID_SIZE
+        y = round(p.y() / GRID_SIZE) * GRID_SIZE
+        return QPointF(x, y)
+
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
-        terminal = self.scene.getClosestTerminal(event.pos())
-        if terminal is not None:
-            self.currentWire = Wire()
+        if self.currentWire is not None:
+            print("before", self.currentWire.points)
+            # currently drawing a wire.
+            # we take the current point that the user has clicked on
+            # and add that to the points list of the current wire
+            # depending on whether the horizontal line is better or the vertical one is better.
+            refPoint = self.currentWire.refPoint
+            clickedPoint = self.normalizePointToGrid(event.pos().toPointF())
+
+            if clickedPoint in self.currentWire.points:
+                id = self.currentWire.points.index(clickedPoint)
+                self.currentWire.points = self.currentWire.points[: id + 1]
+                self.currentWire.refPoint = self.currentWire.points[-1]
+            else:
+                y_difference = abs(refPoint.y() - clickedPoint.y())
+                x_difference = abs(refPoint.x() - clickedPoint.x())
+                if x_difference > y_difference:
+                    # vertical line is longer so we keep the y constant and change the x rahter
+                    newPoint = QPointF(clickedPoint.x(), refPoint.y())
+                else:
+                    newPoint = QPointF(refPoint.x(), clickedPoint.y())
+                self.currentWire.addNewPoint(newPoint)
+            if self.currentWire in self.scene.items():
+                self.scene.removeItem(self.currentWire)
             self.scene.addItem(self.currentWire)
-        super().mouseMoveEvent(event)
+            self.scene.update()
+            print("after", self.currentWire.points)
+        else:
+            # if there's no currentWire, check if a terminal has been clicked.
+            # If a terminal has been clicked, then start creating a new wire
+            terminal = self.scene.getClosestTerminal(event.pos())
+            if terminal is not None and self.currentWire is None:
+                self.currentWire = Wire(startTerminalPosition=terminal)
+                # self.scene.addItem(self.currentWire)
+                # logging.info(f"created current wire, {self.currentWire}")
+                logging.info(f"created current wire, {self.currentWire}")
+        return super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
-        currentMousePosition = event.pos().toPointF()
-        wireSegments = self.createWireSegments(currentMousePosition)
-        super().mouseMoveEvent(event)
-
-    def createWireSegments(self, currentPoint: QtCore.QPointF):
-        startPointF = self.currentWire.refPoint
-        endPointF = currentPoint
-        y_difference = abs(startPointF.y() - endPointF.y())
-        x_difference = abs(startPointF.x() - endPointF.x())
-        if x_difference > y_difference:
-            ...
-        turningPointF = ...
+        return super().mouseMoveEvent(event)
 
 
 if __name__ == "__main__":
