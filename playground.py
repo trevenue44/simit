@@ -2,7 +2,12 @@ import typing
 from PyQt6 import QtWidgets, QtGui, QtCore
 from PyQt6.QtCore import Qt, QPointF, QRectF
 from PyQt6.QtGui import QPainter, QColor
-from PyQt6.QtWidgets import QGraphicsItem, QStyleOptionGraphicsItem, QWidget
+from PyQt6.QtWidgets import (
+    QGraphicsItem,
+    QStyleOptionGraphicsItem,
+    QWidget,
+    QGraphicsView,
+)
 
 GRID_SIZE = 40
 
@@ -48,10 +53,18 @@ class GridScene(QtWidgets.QGraphicsScene):
         painter.drawPoint(self.t1)
         painter.drawPoint(self.t2)
 
+    def getClosestTerminal(self, position: QtCore.QPoint):
+        for t in (self.t1, self.t2):
+            d = QtCore.QLineF(t, position.toPointF()).length()
+            if d <= 5:
+                return t
+        return None
+
 
 class Wire(QtWidgets.QGraphicsItem):
-    def __init__(self, parent: QGraphicsItem | None = ...) -> None:
+    def __init__(self, startTerminalPosition: QtCore.QPointF, parent: QGraphicsItem | None = None) -> None:
         super().__init__(parent)
+        self.refPoint = startTerminalPosition
 
 
 class WireSegment(QtWidgets.QGraphicsItem):
@@ -71,12 +84,15 @@ class WireSegment(QtWidgets.QGraphicsItem):
 class View(QtWidgets.QGraphicsView):
     def __init__(self, parent=None):
         super(View, self).__init__(parent)
+        self.scene: GridScene = GridScene(self)
+
+        self.currentWire: Wire | None = None
+
         self.initUI()
 
     def initUI(self):
         self.setGeometry(1100, 150, 600, 600)
-        self.setScene(GridScene(self))
-        # self.setBackgroundBrush(Qt.GlobalColor.black)
+        self.setScene(self.scene)
 
         self.setOptimizationFlag(
             QtWidgets.QGraphicsView.OptimizationFlag.DontAdjustForAntialiasing, True
@@ -86,10 +102,26 @@ class View(QtWidgets.QGraphicsView):
 
         self.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
-        start_point = QPointF(10, 10)
-        end_point = QPointF(100, 100)
-        wireSegment = WireSegment()
-        self.scene().addItem(wireSegment)
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        terminal = self.scene.getClosestTerminal(event.pos())
+        if terminal is not None:
+            self.currentWire = Wire()
+            self.scene.addItem(self.currentWire)
+        super().mouseMoveEvent(event)
+
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+        currentMousePosition = event.pos().toPointF()
+        wireSegments = self.createWireSegments(currentMousePosition)
+        super().mouseMoveEvent(event)
+
+    def createWireSegments(self, currentPoint: QtCore.QPointF):
+        startPointF = self.currentWire.refPoint
+        endPointF = currentPoint
+        y_difference = abs(startPointF.y() - endPointF.y())
+        x_difference = abs(startPointF.x() - endPointF.x())
+        if x_difference > y_difference:
+            ...
+        turningPointF = ...
 
 
 if __name__ == "__main__":
