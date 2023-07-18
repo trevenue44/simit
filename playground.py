@@ -85,7 +85,20 @@ class Wire(QtWidgets.QGraphicsItem):
             painter.drawLine(self.refPoint, self.mapToScene(self.possibleNextPoint))
 
     def boundingRect(self) -> QRectF:
-        return QRectF(QPointF(10, 10), QtCore.QSizeF(20, 20))
+        return QRectF()
+
+    def shape(self) -> QtGui.QPainterPath:
+        path = QtGui.QPainterPath()
+        for index in range(len(self.points) - 1):
+            start = self.mapToScene(self.points[index])
+            end = self.mapToScene(self.points[index + 1])
+            path.moveTo(start)
+            path.lineTo(end)
+
+        return path
+    
+    def contains(self, point: QtCore.QPointF) -> bool:
+        return True
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
         print("Wire Pressed")
@@ -112,6 +125,10 @@ class View(QtWidgets.QGraphicsView):
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
 
         self.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+
+        wire = Wire(QPointF(80, 80))
+        wire.points.extend([QPointF(80, 160), QPointF(240, 160), QPointF(240, 200)])
+        self.scene.addItem(wire)
 
     def normalizePointToGrid(self, p: QPointF) -> QPointF:
         x = round(p.x() / GRID_SIZE) * GRID_SIZE
