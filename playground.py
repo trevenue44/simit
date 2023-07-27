@@ -126,9 +126,9 @@ class View(QtWidgets.QGraphicsView):
 
         self.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
-        wire = Wire(QPointF(80, 80))
-        wire.points.extend([QPointF(80, 160), QPointF(240, 160), QPointF(240, 200)])
-        self.scene.addItem(wire)
+        # wire = Wire(QPointF(80, 80))
+        # wire.points.extend([QPointF(80, 160), QPointF(240, 160), QPointF(240, 200)])
+        # self.scene.addItem(wire)
 
     def normalizePointToGrid(self, p: QPointF) -> QPointF:
         x = round(p.x() / GRID_SIZE) * GRID_SIZE

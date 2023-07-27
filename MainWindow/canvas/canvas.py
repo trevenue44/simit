@@ -1,13 +1,18 @@
 from typing import Type, Dict, List, Tuple
+from PyQt6 import QtGui
 
 from PyQt6.QtWidgets import QGraphicsView
-from PyQt6.QtCore import Qt, pyqtSignal, QObject
+from PyQt6.QtCore import Qt, pyqtSignal, QObject, QPointF
 
 from .grid_scene import GridScene
 from components.general import GeneralComponent
-from components.wire import Wire, ComponentAndTerminalIndex
+
+# from components.wire import Wire, ComponentAndTerminalIndex
+from components.wire_new import Wire
 from SimulationBackend.middleware import CircuitNode
 from SimulationBackend.circuit_simulator import CircuitSimulator
+
+import constants
 
 
 class Canvas(QGraphicsView):
@@ -18,6 +23,7 @@ class Canvas(QGraphicsView):
         super(Canvas, self).__init__(parent)
         self.wireToolActive = False
         self.selectedTerminals = []
+        self.currentWire: Wire | None = None
 
         self.components: Dict[str, GeneralComponent] = {}
         self.wires: Dict[str, Wire] = {}
@@ -87,6 +93,14 @@ class Canvas(QGraphicsView):
 
     def onTerminalClick(self, uniqueID: str, terminalIndex: int):
         if self.wireToolActive:
+            # if wire tool is active and a terminal has been clicked,
+            # create a wire component and start drawing current wire
+            self.currentWire = Wire(
+                startPos=self.components.get(uniqueID).getTerminalPositions()[
+                    terminalIndex
+                ]
+            )
+            print("Wire Created")
             clickedTerminal = (uniqueID, terminalIndex)
             if clickedTerminal in self.selectedTerminals:
                 # terminal already selected
@@ -94,8 +108,46 @@ class Canvas(QGraphicsView):
             self.selectedTerminals.append(clickedTerminal)
 
             if len(self.selectedTerminals) == 2:
-                self.drawWire()
+                self.currentWire = None
                 self.selectedTerminals = []
+
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        if self.wireToolActive:
+            if self.currentWire is not None:
+                # currently drawing a wire
+                # get point user has clicked on
+                # add that point to the points list of current wire
+                # depending on which line is longer? horizontal or vertical
+                clickedPoint = self.normalizePointToGrid(event.pos().toPointF())
+
+                points = self.currentWire.getPoints()
+
+                if clickedPoint in points:
+                    self.currentWire.setRefPoint(clickedPoint)
+                else:
+                    refPoint = self.currentWire.getRefPoint()
+                    dy = abs(refPoint.y() - clickedPoint.y())
+                    dx = abs(refPoint.x() - clickedPoint.x())
+                    if dx > dy:
+                        # vertical line is longer
+                        newPoint = QPointF(clickedPoint.x(), refPoint.y())
+                    else:
+                        # horizontal line longer or same as vertical
+                        newPoint = QPointF(refPoint.x(), clickedPoint.y())
+
+                    self.currentWire.addNewPoint(newPoint)
+
+                if self.currentWire in self.scene().items():
+                    self.scene().removeItem(self.currentWire)
+                self.scene().addItem(self.currentWire)
+                self.scene().update()
+
+        return super().mousePressEvent(event)
+
+    def normalizePointToGrid(self, p: QPointF) -> QPointF:
+        x = round(p.x() / constants.GRID_SIZE) * constants.GRID_SIZE
+        y = round(p.y() / constants.GRID_SIZE) * constants.GRID_SIZE
+        return QPointF(x, y)
 
     def drawWire(self):
         start = ComponentAndTerminalIndex(

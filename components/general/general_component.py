@@ -162,6 +162,8 @@ class GeneralComponent(QGraphicsItem):
         x = int(new_pos.x() / constants.GRID_SIZE) * constants.GRID_SIZE
         y = int(new_pos.y() / constants.GRID_SIZE) * constants.GRID_SIZE
         self.setPos(x, y)
+        if self.scene():
+            self.scene().update()
 
     def rotate(self):
         newRotation = self.rotation() + 90
