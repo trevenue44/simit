@@ -1,29 +1,100 @@
-import typing
+from typing import List
+
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QGraphicsItem
-from PyQt6.QtCore import QPointF, QRectF
-from PyQt6.QtGui import QPainter, QPen, QColor
+from PyQt6.QtWidgets import QGraphicsItem, QGraphicsSceneMouseEvent, QGraphicsTextItem
+from PyQt6.QtCore import QPointF, QRectF, Qt, QLineF
+from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QPainterPath, QPainterPathStroker
 
 import constants
 from components.general import ComponentAndTerminalIndex
 
+import math
+
+from SimulationBackend.middleware import CircuitNode
+
 
 class Wire(QGraphicsItem):
-    def __init__(self, start: ComponentAndTerminalIndex, parent=None) -> None:
+    name = "Wire"
+
+    def __init__(
+        self, start: ComponentAndTerminalIndex, wireCount: int, parent=None
+    ) -> None:
         super().__init__(parent)
-        self.setZValue(10)
+        self.setZValue(1)
+
+        # create uniqueID of wire
+        self.uniqueID = f"{self.name}-{wireCount}"
 
         self._start = start
         self._end: ComponentAndTerminalIndex | None = None
 
-        self._refPoint = start.component.getTerminalPositions()[start.terminalIndex]
+        self._startPoint = self._refPoint = start.component.getTerminalPositions()[
+            start.terminalIndex
+        ]
         self._points = [self._refPoint]
+        self._endPoint: QPointF | None = None
 
         # connecting componentMoved signal from start component
         start.component.signals.componentMoved.connect(self._onStartComponentMoved)
 
+        # keeping track of the circuit node that a particular wire forms
+        self.circuitNode: CircuitNode | None = None
+
+        self.initUI()
+
+    def initUI(self):
+        # make the wire selectable
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
+
+        # initialise text item to write node labels and node voltages
+        self.textItem = QGraphicsTextItem(self)
+        self.textItem.setDefaultTextColor(Qt.GlobalColor.yellow)
+        self.textItem.setFont(QFont("Arial", 10))
+        self.textItem.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
+
+    def updateWireText(self):
+        # write simulation results if there is some
+        if self.circuitNode:
+            # calculate the midpoint of the wire
+            midpoint = self._points[len(self._points) // 2]
+
+            text = f"CN-{self.circuitNode.uniqueID.split('-')[-1]}"
+
+            if self.getNodeVoltage():
+                # get node data
+                # eg: ["10.00", "V"]
+                nodeVoltage = self.getNodeVoltage()
+                # combine value and unit into one text
+                text = f"{text}\n{' '.join(nodeVoltage)}"
+
+            # set text and initial position
+            self.textItem.setPlainText(text)
+            self.textItem.setPos(midpoint)
+
+            # Adjust the position of the text item to center it horizontally
+            textWidth = self.textItem.boundingRect().width()
+            textHeight = self.textItem.boundingRect().height()
+            self.textItem.setPos(
+                midpoint.x() - textWidth / 2, midpoint.y() - textHeight / 2
+            )
+
+    def getNodeVoltage(self) -> List[str] | None:
+        if self.circuitNode:
+            return self.circuitNode.data.get("V")
+        return None
+
+    def setCircuitNode(self, circuitNode: CircuitNode) -> None:
+        self.circuitNode = circuitNode
+        self.circuitNode.signals.nodeDataChanged.connect(self.handleNodeDataChange)
+        # write node ID on wire
+        self.updateWireText()
+
+    def handleNodeDataChange(self):
+        self.updateWireText()
+
     def setEnd(self, end: ComponentAndTerminalIndex):
         self._end = end
+        self._endPoint = end.component.getTerminalPositions()[end.terminalIndex]
         end.component.signals.componentMoved.connect(self._onEndComponentMoved)
 
     def _onStartComponentMoved(self):
@@ -99,25 +170,45 @@ class Wire(QGraphicsItem):
         self._refPoint = self._points[-1]
         self.update()
 
-    def getRefPoint(self) -> QPointF:
-        return self._refPoint
-
-    def setRefPoint(self, p: QPointF):
-        id = self._points.index(p)
-        self._points = self._points[: id + 1]
-        self._refPoint = self._points[-1]
-
-    def getPoints(self) -> list[QPointF]:
-        return self._points
-
     def paint(self, painter: QPainter, option, widget) -> None:
-        painter.setPen(QPen(QColor(255, 20, 20), 2))
+        if self.isSelected():
+            pen = QPen(QColor(50, 205, 50), 3.5)
+        else:
+            pen = QPen(Qt.GlobalColor.darkGray, 2.5)
 
-        # draw the lines between points
-        for index in range(len(self._points) - 1):
-            start = self.mapToScene(self._points[index])
-            end = self.mapToScene(self._points[index + 1])
-            painter.drawLine(start, end)
+        painter.setPen(pen)
+        painter.drawPath(self.path())
 
-    def boundingRect(self):
-        return QRectF()
+    def path(self) -> QPainterPath:
+        """
+        This method creates a QPainterPath that describes the shape of the wire.
+
+        Returns:
+            QPainterPath: A QPainterPath representing the shape of the wire.
+        """
+        path = QPainterPath()
+        for i in range(len(self._points) - 1):
+            path.moveTo(self._points[i])
+            path.lineTo(self._points[i + 1])
+        return path
+
+    def boundingRect(self) -> QRectF:
+        if self._points:
+            return self.path().boundingRect()
+        else:
+            return QRectF()
+
+    def shape(self):
+        path = self.path()
+        # Create a stroker to add allowance around the wire
+        pen = QPen()
+        # Set the width of the pen to determine the allowance
+        pen.setWidth(5)
+        stroker = QPainterPathStroker(pen)
+        strokedPath = stroker.createStroke(path)
+
+        return strokedPath
+
+    def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
+        print("mouse pressseeeeedddddddd!!!")
+        return super().mousePressEvent(event)

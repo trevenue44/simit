@@ -111,7 +111,8 @@ class Canvas(QGraphicsView):
             if self.currentWire is None and len(self.clickedTerminals) == 0:
                 # get the start position from the component specified
                 self.currentWire = Wire(
-                    start=ComponentAndTerminalIndex(component, terminalIndex)
+                    start=ComponentAndTerminalIndex(component, terminalIndex),
+                    wireCount=len(self.wires),
                 )
                 self.clickedTerminals.append((uniqueID, terminalIndex))
             elif self.currentWire is not None and len(self.clickedTerminals) == 1:
@@ -127,6 +128,10 @@ class Canvas(QGraphicsView):
                     )
                     self.currentWire = None
                     self.clickedTerminals.append(terminal)
+                    # update nodes when connection is done
+                    ...
+                    # clear the content of the clicked terminals list
+                    self.clickedTerminals.clear()
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if self.wireToolActive:
@@ -146,6 +151,10 @@ class Canvas(QGraphicsView):
                 self.scene().update()
 
         return super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+        super().mouseReleaseEvent(event)
+        self.scene().update()
 
     def normalizePointToGrid(self, p: QPointF) -> QPointF:
         x = round(p.x() / constants.GRID_SIZE) * constants.GRID_SIZE
