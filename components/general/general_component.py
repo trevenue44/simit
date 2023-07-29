@@ -65,7 +65,7 @@ class GeneralComponent(QGraphicsItem):
         self.uniqueIDTextItem.setDefaultTextColor(Qt.GlobalColor.white)
         self.uniqueIDTextItem.setFont(QFont("Arial", 8))
 
-        self.cnt = 0
+        # self.cnt = 0
 
     def initUI(self):
         self.writeUniqueID()
@@ -103,8 +103,8 @@ class GeneralComponent(QGraphicsItem):
         return super().itemChange(change, value)
 
     def paint(self, painter: QPainter, option, widget) -> None:
-        print(f"updating component {self.cnt}")
-        self.cnt += 1
+        # print(f"updating component {self.cnt}")
+        # self.cnt += 1
         # draw circle around the hovered terminal
         if self.hoveredTerminal is not None:
             painter.setPen(QPen(Qt.GlobalColor.white, 1))

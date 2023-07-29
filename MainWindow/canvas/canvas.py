@@ -114,6 +114,10 @@ class Canvas(QGraphicsView):
                     start=ComponentAndTerminalIndex(component, terminalIndex),
                     wireCount=len(self.wires),
                 )
+                # connect wire clikced signal
+                self.currentWire.signals.wireClicked.connect(self.onWireClick)
+                # add wire to the wires dictionary to keep track of it
+                self.wires[self.currentWire.uniqueID] = self.currentWire
                 self.clickedTerminals.append((uniqueID, terminalIndex))
             elif self.currentWire is not None and len(self.clickedTerminals) == 1:
                 # making sure same terminal is not clicked twice when drawing a wire
@@ -126,12 +130,50 @@ class Canvas(QGraphicsView):
                     self.currentWire.setEnd(
                         end=ComponentAndTerminalIndex(component, terminalIndex)
                     )
-                    self.currentWire = None
                     self.clickedTerminals.append(terminal)
                     # update nodes when connection is done
                     ...
                     # clear the content of the clicked terminals list
                     self.clickedTerminals.clear()
+                    self.currentWire = None
+
+    def onWireClick(self, uniqueID: str, point: QPointF):
+        if self.wireToolActive:
+            # the point clicked could be the start of another wire.
+            # deselect wire component if wire tool is active
+            wire = self.wires.get(uniqueID)
+            wire.setSelected(False)
+            self.rerenderItem(wire)
+            print("selected has been set to ", wire.isSelected())
+
+            if self.currentWire is None and len(self.clickedTerminals) == 0:
+                # user about to draw a new wire
+                self.currentWire = Wire(
+                    start=(wire, point),
+                    wireCount=len(self.wires),
+                )
+                # connect wire clicked signal
+                self.currentWire.signals.wireClicked.connect(self.onWireClick)
+                # add wire to the wires dictionary to keep track of it
+                self.wires[self.currentWire.uniqueID] = self.currentWire
+                self.clickedTerminals.append((uniqueID, QPointF))
+            elif self.currentWire is not None and len(self.clickedTerminals) == 1:
+                # making sure same terminal is not clicked twice when drawing a wire
+                if uniqueID != self.clickedTerminals[0][0]:
+                    self.currentWire.setEnd(end=(wire, point))
+                    self.clickedTerminals.append((uniqueID, QPointF))
+                    # update nodes when connection is done
+                    ...
+                    # clear the content of the clicked terminals list
+                    self.clickedTerminals.clear()
+                    self.currentWire = None
+        print(uniqueID, point)
+
+    def rerenderItem(self, item) -> None:
+        if item in self.scene().items():
+            self.scene().removeItem(item)
+        self.scene().addItem(item)
+        self.scene().update()
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if self.wireToolActive:
@@ -143,12 +185,7 @@ class Canvas(QGraphicsView):
                 # add the clicked point to the wire to handle the drawing of the wire.
                 self.currentWire.addNewPoint(clickedPoint)
                 # update the wire component on the scene to make the current wire show
-                if self.currentWire in self.scene().items():
-                    self.scene().removeItem(self.currentWire)
-                    self.scene().addItem(self.currentWire)
-                else:
-                    self.scene().addItem(self.currentWire)
-                self.scene().update()
+                self.rerenderItem(self.currentWire)
 
         return super().mousePressEvent(event)
 

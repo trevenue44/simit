@@ -1,8 +1,13 @@
-from typing import List
+from typing import List, Tuple, Union
 
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QGraphicsItem, QGraphicsSceneMouseEvent, QGraphicsTextItem
-from PyQt6.QtCore import QPointF, QRectF, Qt, QLineF
+from PyQt6.QtWidgets import (
+    QGraphicsItem,
+    QGraphicsSceneMouseEvent,
+    QGraphicsTextItem,
+    QGraphicsObject,
+)
+from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QPainterPath, QPainterPathStroker
 
 import constants
@@ -16,8 +21,14 @@ from SimulationBackend.middleware import CircuitNode
 class Wire(QGraphicsItem):
     name = "Wire"
 
+    class Signals(QGraphicsObject):
+        wireClicked = pyqtSignal(str, QPointF)
+
     def __init__(
-        self, start: ComponentAndTerminalIndex, wireCount: int, parent=None
+        self,
+        start: ComponentAndTerminalIndex | Tuple[Union["Wire", QPointF]],
+        wireCount: int,
+        parent=None,
     ) -> None:
         super().__init__(parent)
         self.setZValue(1)
@@ -25,20 +36,30 @@ class Wire(QGraphicsItem):
         # create uniqueID of wire
         self.uniqueID = f"{self.name}-{wireCount}"
 
-        self._start = start
-        self._end: ComponentAndTerminalIndex | None = None
+        if type(start) == ComponentAndTerminalIndex:
+            self._startPoint = start.component.getTerminalPositions()[
+                start.terminalIndex
+            ]
+            self._start = start
+            # connecting componentMoved signal from start component
+            start.component.signals.componentMoved.connect(self._onStartComponentMoved)
+        elif type(start) == tuple:
+            self._start: Wire = start[0]
+            self._startPoint: QPointF = start[1]
+        else:
+            self._start: ComponentAndTerminalIndex | Wire | None = None
 
-        self._startPoint = self._refPoint = start.component.getTerminalPositions()[
-            start.terminalIndex
-        ]
+        self._end: ComponentAndTerminalIndex | Wire | None = None
+
+        self._refPoint = self._startPoint
         self._points = [self._refPoint]
         self._endPoint: QPointF | None = None
 
-        # connecting componentMoved signal from start component
-        start.component.signals.componentMoved.connect(self._onStartComponentMoved)
-
         # keeping track of the circuit node that a particular wire forms
         self.circuitNode: CircuitNode | None = None
+
+        # create a signals class to keep track of signals
+        self.signals = self.Signals()
 
         self.initUI()
 
@@ -92,10 +113,14 @@ class Wire(QGraphicsItem):
     def handleNodeDataChange(self):
         self.updateWireText()
 
-    def setEnd(self, end: ComponentAndTerminalIndex):
-        self._end = end
-        self._endPoint = end.component.getTerminalPositions()[end.terminalIndex]
-        end.component.signals.componentMoved.connect(self._onEndComponentMoved)
+    def setEnd(self, end: ComponentAndTerminalIndex | Tuple[Union["Wire", QPointF]]):
+        if type(end) == ComponentAndTerminalIndex:
+            self._end = end
+            self._endPoint = end.component.getTerminalPositions()[end.terminalIndex]
+            end.component.signals.componentMoved.connect(self._onEndComponentMoved)
+        elif type(end) == tuple:
+            self._end = end[0]
+            self._endPoint = end[1]
 
     def _onStartComponentMoved(self):
         newStartPos = self._start.component.getTerminalPositions()[
@@ -104,10 +129,12 @@ class Wire(QGraphicsItem):
         self._points = self._points[::-1]
         self.addNewPoint(newStartPos)
         self._points = self._points[::-1]
+        self._startPoint = newStartPos
 
     def _onEndComponentMoved(self):
         newEndPos = self._end.component.getTerminalPositions()[self._end.terminalIndex]
         self.addNewPoint(newEndPos)
+        self._endPoint = newEndPos
 
     def addNewPoint(self, point: QPointF):
         # if point is already in _points, remove all other points after it to clear the wire after that point
@@ -178,6 +205,13 @@ class Wire(QGraphicsItem):
 
         painter.setPen(pen)
         painter.drawPath(self.path())
+        # draw a larger dot at the starting point
+        pen.setWidth(6)
+        painter.setPen(pen)
+        painter.drawPoint(self._startPoint)
+        # draw a larger dot at the ending point
+        if self._endPoint:
+            painter.drawPoint(self._endPoint)
 
     def path(self) -> QPainterPath:
         """
@@ -210,5 +244,23 @@ class Wire(QGraphicsItem):
         return strokedPath
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        print("mouse pressseeeeedddddddd!!!")
+        # Capture the position of the mouse click
+        clickedPoint = self.mapToScene(event.pos())
+
+        # Initialize the minimum distance with a large value
+        minDistance = float("inf")
+        closestPoint = None
+
+        # Calculate the distance to each point in _points
+        for point in self._points:
+            distance = (clickedPoint - point).manhattanLength()
+            # If the calculated distance is smaller than the current minimum, update the minimum
+            if distance < minDistance:
+                minDistance = distance
+                closestPoint = point
+
+        # At this point, closestPoint is the point in _points closest to the clicked point
+        # emit wire clicked signal with the wire ID and the point clicked
+        self.signals.wireClicked.emit(self.uniqueID, closestPoint)
+
         return super().mousePressEvent(event)
