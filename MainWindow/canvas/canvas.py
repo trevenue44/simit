@@ -6,9 +6,9 @@ from PyQt6.QtCore import Qt, pyqtSignal, QObject, QPointF
 
 from .grid_scene import GridScene
 from components.general import GeneralComponent
-
-# from components.wire import Wire, ComponentAndTerminalIndex
+from components.general.component_and_terminal_index import ComponentAndTerminalIndex
 from components.wire_new import Wire
+
 from SimulationBackend.middleware import CircuitNode
 from SimulationBackend.circuit_simulator import CircuitSimulator
 
@@ -21,8 +21,12 @@ class Canvas(QGraphicsView):
 
     def __init__(self, parent=None):
         super(Canvas, self).__init__(parent)
+        # keep track of the state of the wire tool
         self.wireToolActive = False
-        self.selectedTerminals = []
+        # keeping track of the terminals clicked when the wire tools is active.
+        # format: list of tuples. Each tuple is supposed to be (componentID, terminalIndex)
+        self.clickedTerminals: List[Tuple[str, int]] = []
+        # keep track of the current wire the user is drawing
         self.currentWire: Wire | None = None
 
         self.components: Dict[str, GeneralComponent] = {}
@@ -88,58 +92,57 @@ class Canvas(QGraphicsView):
 
     def onWireToolClick(self, wireToolState: bool):
         self.wireToolActive = wireToolState
+        # stop any current wire being drawn when the wire tool is off
         if not self.wireToolActive:
-            self.selectedTerminals = []
+            # if there's a current wire on the scene, remove it
+            if self.currentWire and self.currentWire in self.scene().items():
+                self.scene().removeItem(self.currentWire)
+            # stop drawing any current wire
+            self.currentWire = None
+            self.scene().update()
 
     def onTerminalClick(self, uniqueID: str, terminalIndex: int):
         if self.wireToolActive:
-            # if wire tool is active and a terminal has been clicked,
-            # create a wire component and start drawing current wire
-            self.currentWire = Wire(
-                startPos=self.components.get(uniqueID).getTerminalPositions()[
-                    terminalIndex
-                ]
-            )
-            print("Wire Created")
-            clickedTerminal = (uniqueID, terminalIndex)
-            if clickedTerminal in self.selectedTerminals:
-                # terminal already selected
-                return
-            self.selectedTerminals.append(clickedTerminal)
-
-            if len(self.selectedTerminals) == 2:
-                self.currentWire = None
-                self.selectedTerminals = []
+            # do anything related to wire if only the wire tool is active.
+            # create a current wire if there is no current wire and no initial terminal has been clicked
+            # create a new wire component and set that as the current wire component
+            # start position of that wire will be the clicked terminal
+            component = self.components.get(uniqueID)
+            if self.currentWire is None and len(self.clickedTerminals) == 0:
+                # get the start position from the component specified
+                self.currentWire = Wire(
+                    start=ComponentAndTerminalIndex(component, terminalIndex)
+                )
+                self.clickedTerminals.append((uniqueID, terminalIndex))
+            elif self.currentWire is not None and len(self.clickedTerminals) == 1:
+                # making sure same terminal is not clicked twice when drawing a wire
+                terminal = (uniqueID, terminalIndex)
+                if terminal not in self.clickedTerminals:
+                    # a second terminal has been clicked
+                    # the end position of the wire has been clicked
+                    # set the end poisiton
+                    # stop drawing wire and set the nodes
+                    self.currentWire.setEnd(
+                        end=ComponentAndTerminalIndex(component, terminalIndex)
+                    )
+                    self.currentWire = None
+                    self.clickedTerminals.append(terminal)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if self.wireToolActive:
+            # only do anything related to wire if the wire tool is active.
+            # if there's a current wire alredy create update the points based on what point is clicked by the user
             if self.currentWire is not None:
-                # currently drawing a wire
-                # get point user has clicked on
-                # add that point to the points list of current wire
-                # depending on which line is longer? horizontal or vertical
-                clickedPoint = self.normalizePointToGrid(event.pos().toPointF())
-
-                points = self.currentWire.getPoints()
-
-                if clickedPoint in points:
-                    self.currentWire.setRefPoint(clickedPoint)
-                else:
-                    refPoint = self.currentWire.getRefPoint()
-                    dy = abs(refPoint.y() - clickedPoint.y())
-                    dx = abs(refPoint.x() - clickedPoint.x())
-                    if dx > dy:
-                        # vertical line is longer
-                        newPoint = QPointF(clickedPoint.x(), refPoint.y())
-                    else:
-                        # horizontal line longer or same as vertical
-                        newPoint = QPointF(refPoint.x(), clickedPoint.y())
-
-                    self.currentWire.addNewPoint(newPoint)
-
+                # get the point clicked by the user and normalis it to grid
+                clickedPoint = self.normalizePointToGrid(self.mapToScene(event.pos()))
+                # add the clicked point to the wire to handle the drawing of the wire.
+                self.currentWire.addNewPoint(clickedPoint)
+                # update the wire component on the scene to make the current wire show
                 if self.currentWire in self.scene().items():
                     self.scene().removeItem(self.currentWire)
-                self.scene().addItem(self.currentWire)
+                    self.scene().addItem(self.currentWire)
+                else:
+                    self.scene().addItem(self.currentWire)
                 self.scene().update()
 
         return super().mousePressEvent(event)
@@ -148,110 +151,6 @@ class Canvas(QGraphicsView):
         x = round(p.x() / constants.GRID_SIZE) * constants.GRID_SIZE
         y = round(p.y() / constants.GRID_SIZE) * constants.GRID_SIZE
         return QPointF(x, y)
-
-    def drawWire(self):
-        start = ComponentAndTerminalIndex(
-            self.components.get(self.selectedTerminals[0][0]),
-            self.selectedTerminals[0][1],
-        )
-        end = ComponentAndTerminalIndex(
-            self.components.get(self.selectedTerminals[1][0]),
-            self.selectedTerminals[1][1],
-        )
-        wire = Wire(start, end, wireCount=len(self.wires))
-        # add new connection to existing nodes or create new nodes
-        node = self.updateCircuitNodes()
-        # add node to wire component to keep track of the data and changes
-        wire.setCircuitNode(node)
-        # add wire to scene
-        self.scene().addItem(wire)
-        # keep track of wire
-        self.wires[wire.uniqueID] = wire
-
-    def updateCircuitNodes(self):
-        if len(self.circuitNodes) == 0:
-            # there are no existing nodes
-            # create a new node
-            node = self.createNewCircuitNode(
-                nodeCount=len(self.circuitNodes),
-                componentTerminals=self.selectedTerminals,
-            )
-            return node
-
-        # keep track of the newTerminals that are already node(s)
-        terminalIntersections: set = set()
-        # keep track of the nodes the new terminals intersect with
-        nodesIntersectedWith: set = set()
-
-        # if there are already circuitNodes
-        # loops through the circuit nodes
-        for nodeID in self.circuitNodes.keys():
-            circuitNode = self.circuitNodes.get(nodeID)
-            # compare the terminals involved in each node to the terminals involved in the new conection
-            newTerminals = set(self.selectedTerminals)
-            oldTerminals = set(circuitNode.componentTerminals)
-
-            intersections = newTerminals.intersection(oldTerminals)
-
-            if len(intersections) == 0:
-                # means that new terminasl don't intersect with the node
-                continue
-            elif len(intersections) == 1:
-                # only one of the new terminals intersect with current node
-                # update the sets outside the loop that keep track of the terminals and nodes intersected with
-                terminalIntersections.add(next(iter(intersections)))
-                nodesIntersectedWith.add(nodeID)
-            elif len(intersections) == 2:
-                # both new terminals belong to this same node
-                # add both new terminals to the terminal intersections above
-                for intersection in iter(intersections):
-                    terminalIntersections.add(intersection)
-                # update the nodeIntersected with
-                nodesIntersectedWith.add(nodeID)
-
-        if len(nodesIntersectedWith) == 0 and len(terminalIntersections) == 0:
-            # the new connection doesn't belong to any old node
-            # create a new node for it
-            node = self.createNewCircuitNode(
-                nodeCount=len(self.circuitNodes),
-                componentTerminals=self.selectedTerminals,
-            )
-            return node
-        elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 1:
-            # connection is already part of a single node.
-            # we add the new terminal that's not already part of that node, to the node
-            # get the nodeID
-            nodeID = next(iter(nodesIntersectedWith))
-            # get the terminals involved in the node
-            componentTerminals = self.circuitNodes.get(nodeID).componentTerminals.copy()
-            for newComponentTerminal in self.selectedTerminals:
-                componentTerminals.append(newComponentTerminal)
-            # remove duplicates
-            componentTerminals = list(set(componentTerminals))
-            # set the componentTerminals of the node to the new componentTerminals
-            self.circuitNodes.get(nodeID).componentTerminals = componentTerminals
-            return self.circuitNodes.get(nodeID)
-        elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 2:
-            # parallel connection between the two components involved
-            print("PARALLEL CONNECTION")
-        elif len(nodesIntersectedWith) == 2 and len(terminalIntersections) == 2:
-            # short circuit between the two nodes
-            print("SHORT CIRCUIT BETWEEN NODE")
-
-    def createNewCircuitNode(
-        self, nodeCount: int, componentTerminals: List[Tuple[str, int]]
-    ):
-        """
-        Function that creates a new node and updates the circuitNodes of the canvas
-        from nodeCount and componentTerminals involved in connection.
-        """
-        # create a node
-        newCircuitNode = CircuitNode(nodeCount=nodeCount)
-        for componentTerminal in componentTerminals:
-            newCircuitNode.componentTerminals.append(componentTerminal)
-        # add new node to the dict of nodes
-        self.circuitNodes[newCircuitNode.uniqueID] = newCircuitNode
-        return newCircuitNode
 
     def onSimulateButtonClick(self):
         print("simulating...")

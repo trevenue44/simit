@@ -108,7 +108,7 @@ class GeneralComponent(QGraphicsItem):
         # draw circle around the hovered terminal
         if self.hoveredTerminal is not None:
             painter.setPen(QPen(Qt.GlobalColor.white, 1))
-            radius = 5
+            radius = 3
             painter.drawEllipse(self.hoveredTerminal, radius, radius)
         # draw a selection rectangle around the component when selected
         if self.isSelected():
@@ -132,14 +132,14 @@ class GeneralComponent(QGraphicsItem):
     def findClosestTerminal(self, pos: QPointF) -> Optional[QPointF]:
         terminalPositions = self.getTerminalPositions()
         closestTerminal = None
-        minDistance = float(5)
+        minDistance = float(3)
 
         for terminalPos in terminalPositions:
             distance = QLineF(pos, terminalPos).length()
             if distance <= minDistance:
                 closestTerminal = terminalPos
                 break
-            elif distance - 5 <= minDistance:
+            elif distance - 3 <= minDistance:
                 self.update()
 
         return closestTerminal
