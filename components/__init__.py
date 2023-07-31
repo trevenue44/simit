@@ -1,7 +1,7 @@
 from .resistor import Resistor
 from .voltage_source import VoltageSource
 from .ground import Ground
-from .wire_new import Wire
+from .wire import Wire
 
 COMPONENT_CLASSES = sorted(
     [Resistor, VoltageSource, Ground], key=lambda cls: cls.__name__

@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QObject, QPointF
 from .grid_scene import GridScene
 from components.general import GeneralComponent
 from components.general.component_and_terminal_index import ComponentAndTerminalIndex
-from components.wire_new import Wire
+from components.wire import Wire
 
 from SimulationBackend.middleware import CircuitNode
 from SimulationBackend.circuit_simulator import CircuitSimulator

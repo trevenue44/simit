@@ -17,7 +17,7 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("SIMIT")
+        self.setWindowTitle("simit")
         self.resize(1000, 800)
         self.setMinimumWidth(1000)
         self.setMinimumHeight(800)
