@@ -147,31 +147,34 @@ class Canvas(QGraphicsView):
 
         Params:
             wireIDs: `List[str]` - a list of the IDs of the wires to delete
-
-        Returns:
-            None
         """
         for wireID in wireIDs:
-            # get the wire
+            # Don't preceed if the wire doesn't exist
             wire = self.wires.get(wireID)
-            if wire is not None:
-                # get the related node
-                node = wire.circuitNode
-                if node is not None:
-                    # get and delete all related wires
-                    for relatedWire in node.wires:
-                        # remove related wire from wires on canvas
-                        if relatedWire.uniqueID in self.wires.keys():
-                            del self.wires[relatedWire.uniqueID]
-                        # remove relatedWire from scene
-                        if relatedWire in self.scene().items():
-                            self.scene().removeItem(relatedWire)
-                    # remove node from circuit nodes on canvas
-                    if node.uniqueID in self.circuitNodes.keys():
-                        del self.circuitNodes[node.uniqueID]
-                # remove wire from scene
-                if wire in self.scene().items():
-                    self.scene().removeItem(wire)
+            if wire is None:
+                continue
+
+            # remove wire from scene
+            if wire in self.scene().items():
+                self.scene().removeItem(wire)
+
+            # Don't preceed if the wire is not connected to a node
+            node = wire.circuitNode
+            if node is None:
+                continue
+
+            # get and delete all related wires
+            for relatedWire in node.wires:
+                # remove related wire from wires on canvas
+                if relatedWire.uniqueID in self.wires.keys():
+                    del self.wires[relatedWire.uniqueID]
+                # remove relatedWire from scene
+                if relatedWire in self.scene().items():
+                    self.scene().removeItem(relatedWire)
+
+            # remove node from circuit nodes on canvas
+            if node.uniqueID in self.circuitNodes.keys():
+                del self.circuitNodes[node.uniqueID]
         self.scene().update()
 
     def onWireToolClick(self, wireToolState: bool):
@@ -254,11 +257,11 @@ class Canvas(QGraphicsView):
             # Register the clicked terminal.
             self.clickedTerminals.append(terminal)
 
-            # Register the completed wire and clear current wire.
+            # Register the completed wire.
             self.wires[self.currentWire.uniqueID] = self.currentWire
 
             # Update nodes when connection is done and assign circuit node to wire.
-            node = self.updateCircuitNodes()
+            node = self.update_circuit_nodes()
             self.currentWire.setCircuitNode(node)
 
             # Register the new wire with the circuit node.
@@ -269,196 +272,287 @@ class Canvas(QGraphicsView):
             self.currentWire = None
 
     def onWireClick(self, uniqueID: str, point: QPointF):
-        if self.wireToolActive:
-            # if the user accidentally selects the current wire he's drawing
-            # the point clicked could be the start of another wire.
-            # deselect wire component if wire tool is active
-            wire = self.wires.get(uniqueID)
-            if wire is None:
-                return
-            wire.setSelected(False)
-            self.rerenderItem(wire)
-            print("selected has been set to ", wire.isSelected())
+        """
+        Handles the event of a wire being clicked in the user interface. This function
+        is responsible for creating new Wire objects when necessary and updating their start
+        and end points according to the terminals that are clicked. It also handles
+        connecting wire signals and updating circuit nodes.
 
-            if self.currentWire is None and len(self.clickedTerminals) == 0:
-                # user about to draw a new wire
-                self.currentWire = Wire(
-                    start=(wire, point),
-                    wireCount=len(self.wires),
-                )
-                # connect wire clicked signal
-                self.currentWire.signals.wireClicked.connect(self.onWireClick)
-                self.currentWire.signals.wireSelected.connect(self.onWireSelected)
-                self.currentWire.signals.wireDeselected.connect(self.onWireDeselected)
-                self.clickedTerminals.append((uniqueID, QPointF))
-            elif self.currentWire is not None and len(self.clickedTerminals) == 1:
-                # making sure same terminal is not clicked twice when drawing a wire
-                if uniqueID != self.clickedTerminals[0][0]:
-                    self.currentWire.setEnd(end=(wire, point))
-                    self.clickedTerminals.append((uniqueID, QPointF))
-                    # add wire to the completed wires dictionary to keep track of it
-                    self.wires[self.currentWire.uniqueID] = self.currentWire
-                    # update nodes when connection is done
-                    node = self.updateCircuitNodes()
-                    self.currentWire.setCircuitNode(node)
-                    # add wire to node
-                    node.addNewWires([self.currentWire])
-                    # clear the content of the clicked terminals list
-                    self.clickedTerminals.clear()
-                    self.currentWire = None
+        Params:
+            uniqueID (str): Unique ID of the wire.
+            point (QPointF): Point on the wire that has been clicked.
 
-    def updateCircuitNodes(self):
-        if len(self.circuitNodes) == 0:
-            # there are no existing nodes
-            # create a new node
-            node = self.createNewCircuitNode(
-                nodeCount=len(self.circuitNodes),
-                componentTerminals=self.clickedTerminals,
-            )
-            return node
+        """
+        # Only proceed if the wire tool is active.
+        if not self.wireToolActive:
+            return
 
-        # deal with situations wheere at least one side of the connection is a wire (already from a node)
-        wireTerminals = list(
-            filter(lambda t: "wire" in t[0].lower(), self.clickedTerminals)
+        # Fetch the wire associated with the uniqueID.
+        wire = self.wires.get(uniqueID)
+
+        # if wire is not found, log the error and return
+        if wire is None:
+            print(f"[ERROR] Wire with uniqueID {uniqueID} not found")
+            return
+
+        # If no wire or terminal is currently selected, start a new wire from the clicked wire.
+        if self.currentWire is None and len(self.clickedTerminals) == 0:
+            self._initialize_wire_on_wire_click(wire, point)
+
+        # If there's an active wire and one terminal has been clicked, set the end of the wire
+        # to the newly clicked wire and update the circuit accordingly.
+        elif self.currentWire is not None and len(self.clickedTerminals) == 1:
+            self._finalize_wire_on_wire_click(wire, point)
+
+    def _initialize_wire_on_wire_click(self, wire: "Wire", point: QPointF):
+        """
+        Initiates a wire from the specified wire point.
+
+        Params:
+            wire (`Wire`): Wire from which the wire is initiated.
+            point (`int`): Point on the wire from which new wire is initiated.
+        """
+        # Create new wire and assign start position.
+        self.currentWire = Wire(
+            start=(wire, point),
+            wireCount=len(self.wires),
         )
+        # Connect signals for wire interaction events.
+        self.currentWire.signals.wireClicked.connect(self.onWireClick)
+        self.currentWire.signals.wireSelected.connect(self.onWireSelected)
+        self.currentWire.signals.wireDeselected.connect(self.onWireDeselected)
 
-        if len(wireTerminals) > 2:
-            print("PROBLEM!!")
-        elif len(wireTerminals) == 2:
-            # there is a short circuit
-            # two, already existing wires, have been connnected.
-            # combine the two nodes into one node.
-            # get the wires first
-            wire1 = self.wires.get(wireTerminals[0][0])
-            wire2 = self.wires.get(wireTerminals[1][0])
-            # get the respective nodes of the wires
-            node1 = wire1.circuitNode
-            node2 = wire2.circuitNode
-            # if the nodes are the same, just return one of them
-            if node1 == node2:
-                return node1
-            # combine the component terminals into node1
-            node = node1.combineWith(node2)
-            # remove node2 after combing it onto noe1
-            if node2.uniqueID in self.circuitNodes.keys():
-                del self.circuitNodes[node2.uniqueID]
-            return node
-        elif len(wireTerminals) == 1:
-            # get the component
-            componentTerminalInClickedTerminals = (
-                self.clickedTerminals[0]
-                if self.clickedTerminals[1] in wireTerminals
-                else self.clickedTerminals[1]
-            )
-            component = self.components.get(componentTerminalInClickedTerminals[0])
-            # check to see if component terminal is already part of a node
-            terminalNode = component.terminalNodes.get(
-                componentTerminalInClickedTerminals[1]
-            )
-            # get the wire
-            wire = self.wires.get(wireTerminals[0][0])
-            # get the node the wire already belongs to
-            wireNode = wire.circuitNode
-            if terminalNode is None:
-                # a new component is about to be added to an already existing node (wire)
-                # update the current node with the new component
-                wireNode.addComponentTerminals([componentTerminalInClickedTerminals])
-            else:
-                # component terminal already belongs to a node
-                # combine terminalNode onto wireNode
-                wireNode.addComponentTerminals(terminalNode.componentTerminals)
-            # update the terminal nodes of the component
-            component.setTerminalNode(componentTerminalInClickedTerminals[1], wireNode)
-            # return node as the final node for the newly created wire
-            return wireNode
+        # Register the clicked wire.
+        self.clickedTerminals.append((wire.uniqueID, QPointF))
 
-        # keep track of the newTerminals that are already node(s)
-        terminalIntersections: set = set()
-        # keep track of the nodes the new terminals intersect with
-        nodesIntersectedWith: set = set()
-
-        # if there are already circuitNodes
-        # loops through the circuit nodes
-        for nodeID in self.circuitNodes.keys():
-            circuitNode = self.circuitNodes.get(nodeID)
-            # compare the terminals involved in each node to the terminals involved in the new conection
-            newTerminals = set(self.clickedTerminals)
-            oldTerminals = set(circuitNode.componentTerminals)
-
-            intersections = newTerminals.intersection(oldTerminals)
-
-            if len(intersections) == 0:
-                # means that new terminasl don't intersect with the node
-                continue
-            elif len(intersections) == 1:
-                # only one of the new terminals intersect with current node
-                # update the sets outside the loop that keep track of the terminals and nodes intersected with
-                terminalIntersections.add(next(iter(intersections)))
-                nodesIntersectedWith.add(nodeID)
-            elif len(intersections) == 2:
-                # both new terminals belong to this same node
-                # add both new terminals to the terminal intersections above
-                for intersection in iter(intersections):
-                    terminalIntersections.add(intersection)
-                # update the nodeIntersected with
-                nodesIntersectedWith.add(nodeID)
-
-        if len(nodesIntersectedWith) == 0 and len(terminalIntersections) == 0:
-            # the new connection doesn't belong to any old node
-            # create a new node for it
-            node = self.createNewCircuitNode(
-                nodeCount=len(self.circuitNodes),
-                componentTerminals=self.clickedTerminals,
-            )
-            # update the terminal nodes of the components
-            for componentID, terminalIndex in self.clickedTerminals:
-                component = self.components.get(componentID)
-                component.setTerminalNode(terminalIndex, node)
-            # return newly created node as the node of the newly created wire.
-            return node
-        elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 1:
-            # connection is already part of a single node.
-            # we add the new terminal that's not already part of that node, to the node
-            # get the nodeID
-            nodeID = next(iter(nodesIntersectedWith))
-            # get the node
-            node = self.circuitNodes.get(nodeID)
-            # add both terminals to the terminals of the node
-            # duplicates are automatically handled by the node
-            node.addComponentTerminals(self.clickedTerminals)
-            # update the terminal nodes of the components
-            for componentID, terminalIndex in self.clickedTerminals:
-                component = self.components.get(componentID)
-                component.setTerminalNode(terminalIndex, node)
-            # return newly created node as the node of the newly created wire.
-            return node
-        elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 2:
-            # parallel connection between the two components involved
-            print("PARALLEL CONNECTION")
-        elif len(nodesIntersectedWith) == 2 and len(terminalIntersections) == 2:
-            # short circuit between the two nodes
-            print("SHORT CIRCUIT BETWEEN NODE")
-
-    def createNewCircuitNode(
-        self, nodeCount: int, componentTerminals: List[Tuple[str, int]]
-    ):
+    def _finalize_wire_on_wire_click(self, wire: "Wire", point: QPointF):
         """
-        Function that creates a new node and updates the circuitNodes of the canvas
-        from nodeCount and componentTerminals involved in connection.
+        Finalizes the active wire to the specified wire point
+        and updates the circuit accordingly.
+
+        Params:
+            wire (`Wire`): Wire to which the wire is finalized.
+            point (`int`): Point on the wire to which the wire is finalized.
         """
-        # create a node
-        newCircuitNode = CircuitNode(nodeCount=nodeCount)
-        for componentTerminal in componentTerminals:
-            newCircuitNode.componentTerminals.append(componentTerminal)
-        # add new node to the dict of nodes
-        self.circuitNodes[newCircuitNode.uniqueID] = newCircuitNode
-        return newCircuitNode
+        # Makes sure that the same wire is not used as both start and end of a wire
+        # Get the uniqueIDs of the wires currently in the clicked terminals
+        wireIDs = [terminal[0] for terminal in self.clickedTerminals]
+
+        # Only proceed if the wire is not already in the clicked terminals
+        if wire.uniqueID in wireIDs:
+            return
+
+        # Set wire end position.
+        self.currentWire.setEnd(end=(wire, point))
+
+        # Register the clicked wire in the clicked terminals
+        self.clickedTerminals.append((wire.uniqueID, QPointF))
+
+        # Register the completed wire
+        self.wires[self.currentWire.uniqueID] = self.currentWire
+
+        # Update nodes when connection is done and assign circuit node to wire.
+        node = self.update_circuit_nodes()
+        self.currentWire.setCircuitNode(node)
+
+        # Register the new wire with the circuit node.
+        node.addNewWires([self.currentWire])
+
+        # Reset for next wire creation process.
+        self.clickedTerminals.clear()
+        self.currentWire = None
 
     def rerenderItem(self, item) -> None:
         if item in self.scene().items():
             self.scene().removeItem(item)
         self.scene().addItem(item)
         self.scene().update()
+
+    def update_circuit_nodes(self) -> CircuitNode | None:
+        """Updates the circuit nodes based on various conditions"""
+        if not self.circuitNodes:
+            return self._create_new_node_if_no_existing_nodes()
+
+        wireTerminals = self._filter_wire_terminals()
+        wire_terminals_len = len(wireTerminals)
+
+        if wire_terminals_len > 2:
+            print("PROBLEM")
+            return
+        elif wire_terminals_len == 2:
+            return self._handle_wire_short_circuit(wireTerminals)
+        elif wire_terminals_len == 1:
+            return self._handle_single_wire_terminal(wireTerminals)
+
+        return self._update_node_or_create_new_one_if_no_wire_terminals()
+
+    def _create_new_node_if_no_existing_nodes(self) -> CircuitNode:
+        """Creates a new node if there are no existing nodes"""
+        node = CircuitNode(len(self.circuitNodes))
+        node.addComponentTerminals(self.clickedTerminals)
+
+        # Register the newly created node
+        self.circuitNodes[node.uniqueID] = node
+        for componentID, terminalIndex in self.clickedTerminals:
+            component = self.components.get(componentID)
+            component.setTerminalNode(terminalIndex, node)
+
+        return node
+
+    def _filter_wire_terminals(self):
+        """filters wire terminals from clicked termminals"""
+        return list(filter(lambda t: "wire" in t[0].lower(), self.clickedTerminals))
+
+    def _handle_wire_short_circuit(self, wireTerminals: List[Tuple[str, int]]):
+        """handle short circuit scenario when two wires are connected and merges two nodes into one"""
+        # Get the wires first
+        wire1 = self.wires.get(wireTerminals[0][0])
+        wire2 = self.wires.get(wireTerminals[1][0])
+        # Get the respective nodes of the wires
+        node1 = wire1.circuitNode
+        node2 = wire2.circuitNode
+        # If the nodes are the same, just return one of them
+        if node1 == node2:
+            return node1
+        # Combine the component terminals into node1
+        node = node1.combineWith(node2)
+        # Remove node2 after combing it onto noe1
+        if node2.uniqueID in self.circuitNodes.keys():
+            del self.circuitNodes[node2.uniqueID]
+        return node
+
+    def _handle_single_wire_terminal(self, wireTerminals: List[Tuple[str, int]]):
+        """handles scenerio with a single wire terminal connected to a component terminal"""
+        componentTerminalInClickedTerminals = (
+            self.clickedTerminals[0]
+            if self.clickedTerminals[1] in wireTerminals
+            else self.clickedTerminals[1]
+        )
+        componentID, terminalIndex = componentTerminalInClickedTerminals
+        component = self.components.get(componentID)
+        wireID = wireTerminals[0][0]  # [(wireID, QPoint)]
+        wire = self.wires.get(wireID)
+
+        wireNode = wire.circuitNode
+        componentNode = component.terminalNodes.get(terminalIndex)
+
+        # if the component terminal is not already part of a node, add it to the node of the wire
+        if componentNode is None:
+            wireNode.addComponentTerminals([componentTerminalInClickedTerminals])
+            # Register the node in the component
+            component.setTerminalNode(terminalIndex, wireNode)
+
+            return wireNode
+        # If the component is already part of a node, combine the two nodes into one.
+        else:
+            node = wireNode.combineWith(componentNode)
+
+            # Register the new node for both the wire and the component
+            wire.setCircuitNode(node)
+            component.setTerminalNode(terminalIndex, node)
+
+            return node
+
+    def _update_node_or_create_new_one_if_no_wire_terminals(self):
+        """Updates an existing node or creates a new one if connection is purely between component terminals"""
+        terminalIntersections, nodesIntersectedWith = self._find_intersections()
+
+        if not nodesIntersectedWith and not terminalIntersections:
+            return self._create_new_node()
+        elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 1:
+            return self._update_existing_nodes(nodesIntersectedWith)
+        elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 2:
+            print("PARALLEL CONNECTION")
+        elif len(nodesIntersectedWith) == 2 and len(terminalIntersections) == 2:
+            print("SHORT CIRCUIT BETWEEN NODE")
+            return self._handle_short_circuit_between_nodes(
+                nodesIntersectedWith, terminalIntersections
+            )
+
+    def _find_intersections(self) -> Tuple[set, set]:
+        """Finds the intersection of new terminals and old ones based on existing circuit nodes"""
+        # Initialize an empty set to keep track of terminals that are already present in a node
+        terminalIntersections: set = set()
+
+        # Initialize an empty set to keep track of existing nodes that intersect with the new terminals
+        nodesIntersectedWith: set = set()
+
+        # Check if there are existing circuitNodes
+        # If yes, iterate through each of these circuit nodes
+        for nodeID in self.circuitNodes.keys():
+            # Fetch the current circuit node based on nodeID
+            circuitNode = self.circuitNodes.get(nodeID)
+
+            # Convert the clicked terminals to a set, these are the new terminals being added
+            newTerminals = set(self.clickedTerminals)
+
+            # Convert the terminals of the current circuit node to a set, these are the existing terminals
+            oldTerminals = set(circuitNode.componentTerminals)
+
+            # Find the common terminals between new and old terminals
+            intersections = newTerminals.intersection(oldTerminals)
+
+            if len(intersections) == 0:
+                # This implies that the new terminals don't intersect with the current circuit node
+                # Move to the next circuit node
+                continue
+            elif len(intersections) == 1:
+                # Only one of the new terminals intersects with the current node
+                # Add this terminal to the set that keeps track of terminals intersected with
+                terminalIntersections.add(next(iter(intersections)))
+                # Similarly, add the current node's ID to the set that keeps track of intersected nodes
+                nodesIntersectedWith.add(nodeID)
+            elif len(intersections) == 2:
+                # Both new terminals intersect with the current node
+                # Add these terminals to the set that keeps track of terminals intersected with
+                for intersection in iter(intersections):
+                    terminalIntersections.add(intersection)
+                # Add the current node's ID to the set that keeps track of intersected nodes
+                nodesIntersectedWith.add(nodeID)
+
+        return terminalIntersections, nodesIntersectedWith
+
+    def _create_new_node(self) -> CircuitNode:
+        """Creates a new node if the none of the clicked terminals are already part of a node"""
+        return self._create_new_node_if_no_existing_nodes()
+
+    def _update_existing_nodes(self, nodesIntersectedWith: set) -> CircuitNode:
+        """Update an eisting node if the new connection is part of an existing node"""
+        nodeID = next(iter(nodesIntersectedWith))
+        node = self.circuitNodes.get(nodeID)
+        node.addComponentTerminals(self.clickedTerminals)
+
+        # Register the node in the components
+        for componentID, terminalIndex in self.clickedTerminals:
+            component = self.components.get(componentID)
+            component.setTerminalNode(terminalIndex, node)
+
+        return node
+
+    def _handle_short_circuit_between_nodes(
+        self, nodesIntersectedWith, terminalIntersections
+    ) -> CircuitNode:
+        """Handles short circuit scenario when two nodes are connected and merges two nodes into one"""
+        # Converts the set into lists so that they can be indexed
+        nodesIntersectedWith = list(nodesIntersectedWith)
+
+        # Fetch the two nodes that are being shorted
+        node1 = self.circuitNodes.get(nodesIntersectedWith[0])
+        node2 = self.circuitNodes.get(nodesIntersectedWith[1])
+
+        # Combine the shorted nodes into one
+        node = node1.combineWith(node2)
+
+        # Remove node2 after combing it onto node1
+        if node2.uniqueID in self.circuitNodes.keys():
+            del self.circuitNodes[node2.uniqueID]
+
+        # Register the new node in the components
+        for componentID, terminalIndex in iter(terminalIntersections):
+            component = self.components.get(componentID)
+            component.setTerminalNode(terminalIndex, node)
+
+        return node
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if self.wireToolActive:
@@ -485,13 +579,6 @@ class Canvas(QGraphicsView):
 
     def onSimulateButtonClick(self):
         print("simulating...")
-
-        print("######## Circuit Nodes #############")
-        for id, node in self.circuitNodes.items():
-            print(id, [wire.uniqueID for wire in node.wires])
-        print("####################################")
-
-        return
 
         # create a circuit simulator instance with current data
         circuitSimulator = CircuitSimulator(
