@@ -10,7 +10,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import pyqtSignal, QPointF, QLineF, Qt
 from PyQt6.QtGui import QPainter, QPen, QFont
 
+from SimulationBackend.middleware import CircuitNode
+
 from ..types import ComponentCategory, componentDataType, simulationResultsType
+
+import constants
 
 
 class GeneralComponent(QGraphicsItem):
@@ -64,7 +68,12 @@ class GeneralComponent(QGraphicsItem):
         self.uniqueIDTextItem.setDefaultTextColor(Qt.GlobalColor.white)
         self.uniqueIDTextItem.setFont(QFont("Arial", 8))
 
-        self.cnt = 0
+        # keep track of the node each terminal is connected to.
+        # terminalIndex to CircuitNode pairs
+        self.terminalNodes: Dict[int, CircuitNode] = {}
+
+    def setTerminalNode(self, terminalIndex: int, node: CircuitNode) -> None:
+        self.terminalNodes[terminalIndex] = node
 
     def initUI(self):
         self.writeUniqueID()
@@ -102,12 +111,12 @@ class GeneralComponent(QGraphicsItem):
         return super().itemChange(change, value)
 
     def paint(self, painter: QPainter, option, widget) -> None:
-        print(f"updating component {self.cnt}")
-        self.cnt += 1
+        # print(f"updating component {self.cnt}")
+        # self.cnt += 1
         # draw circle around the hovered terminal
         if self.hoveredTerminal is not None:
             painter.setPen(QPen(Qt.GlobalColor.white, 1))
-            radius = 5
+            radius = 3
             painter.drawEllipse(self.hoveredTerminal, radius, radius)
         # draw a selection rectangle around the component when selected
         if self.isSelected():
@@ -131,14 +140,14 @@ class GeneralComponent(QGraphicsItem):
     def findClosestTerminal(self, pos: QPointF) -> Optional[QPointF]:
         terminalPositions = self.getTerminalPositions()
         closestTerminal = None
-        minDistance = float(5)
+        minDistance = float(3)
 
         for terminalPos in terminalPositions:
             distance = QLineF(pos, terminalPos).length()
             if distance <= minDistance:
                 closestTerminal = terminalPos
                 break
-            elif distance - 5 <= minDistance:
+            elif distance - 3 <= minDistance:
                 self.update()
 
         return closestTerminal
@@ -156,7 +165,13 @@ class GeneralComponent(QGraphicsItem):
 
     def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent) -> None:
         self.signals.componentMoved.emit()
-        return super().mouseMoveEvent(event)
+        # set new position based on grid
+        new_pos = event.scenePos()
+        x = int(new_pos.x() / constants.GRID_SIZE) * constants.GRID_SIZE
+        y = int(new_pos.y() / constants.GRID_SIZE) * constants.GRID_SIZE
+        self.setPos(x, y)
+        if self.scene():
+            self.scene().update()
 
     def rotate(self):
         newRotation = self.rotation() + 90
