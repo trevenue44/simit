@@ -10,7 +10,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import pyqtSignal, QPointF, QLineF, Qt
 from PyQt6.QtGui import QPainter, QPen, QFont
 
+from SimulationBackend.middleware import CircuitNode
+
 from ..types import ComponentCategory, componentDataType, simulationResultsType
+
 import constants
 
 
@@ -65,7 +68,12 @@ class GeneralComponent(QGraphicsItem):
         self.uniqueIDTextItem.setDefaultTextColor(Qt.GlobalColor.white)
         self.uniqueIDTextItem.setFont(QFont("Arial", 8))
 
-        # self.cnt = 0
+        # keep track of the node each terminal is connected to.
+        # terminalIndex to CircuitNode pairs
+        self.terminalNodes: Dict[int, CircuitNode] = {}
+
+    def setTerminalNode(self, terminalIndex: int, node: CircuitNode) -> None:
+        self.terminalNodes[terminalIndex] = node
 
     def initUI(self):
         self.writeUniqueID()

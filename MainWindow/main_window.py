@@ -106,16 +106,21 @@ class MainWindow(QMainWindow):
 
     def onDeleteSelectedComponentsClick(self):
         selectedComponentsIDs = self.canvas.selectedComponentsIDs.copy()
-        if len(selectedComponentsIDs):
+        selectedWireIDs = self.canvas.selectedWireIDs.copy()
+        if len(selectedComponentsIDs) or len(selectedWireIDs):
+            messageText = "Are you sure you want to delete selected components?"
+            if len(selectedWireIDs):
+                messageText += "\n\nDeleting a Wire will delete the whole node."
             button = QMessageBox.question(
                 self,
                 "Confirm Delete",
-                "Are you sure you want to delete selected components?",
+                messageText,
                 buttons=QMessageBox.StandardButton.Yes
                 | QMessageBox.StandardButton.Cancel,
             )
             if button == QMessageBox.StandardButton.Yes:
                 self.canvas.deleteComponents(componentIDs=selectedComponentsIDs)
+                self.canvas.deleteWires(wireIDs=selectedWireIDs)
 
     def rotateSelectedComponent(self):
         self.canvas.rotateSelectedComponents()

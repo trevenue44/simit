@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Type
 
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
@@ -13,8 +13,6 @@ from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QPainterPath, QPainterPat
 import constants
 from components.general import ComponentAndTerminalIndex
 
-import math
-
 from SimulationBackend.middleware import CircuitNode
 
 
@@ -23,6 +21,8 @@ class Wire(QGraphicsItem):
 
     class Signals(QGraphicsObject):
         wireClicked = pyqtSignal(str, QPointF)
+        wireSelected = pyqtSignal(str)
+        wireDeselected = pyqtSignal(str)
 
     def __init__(
         self,
@@ -32,6 +32,8 @@ class Wire(QGraphicsItem):
     ) -> None:
         super().__init__(parent)
         self.setZValue(1)
+        # create a signals class to keep track of signals
+        self.signals = self.Signals()
 
         # create uniqueID of wire
         self.uniqueID = f"{self.name}-{wireCount}"
@@ -58,9 +60,6 @@ class Wire(QGraphicsItem):
         # keeping track of the circuit node that a particular wire forms
         self.circuitNode: CircuitNode | None = None
 
-        # create a signals class to keep track of signals
-        self.signals = self.Signals()
-
         self.initUI()
 
     def initUI(self):
@@ -72,6 +71,15 @@ class Wire(QGraphicsItem):
         self.textItem.setDefaultTextColor(Qt.GlobalColor.yellow)
         self.textItem.setFont(QFont("Arial", 10))
         self.textItem.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
+
+    def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value):
+        if change == QGraphicsItem.GraphicsItemChange.ItemSelectedChange:
+            if value:
+                self.signals.wireSelected.emit(self.uniqueID)
+            else:
+                self.signals.wireDeselected.emit(self.uniqueID)
+            self.update()
+        return super().itemChange(change, value)
 
     def updateWireText(self):
         # write simulation results if there is some
@@ -126,15 +134,41 @@ class Wire(QGraphicsItem):
         newStartPos = self._start.component.getTerminalPositions()[
             self._start.terminalIndex
         ]
-        self._points = self._points[::-1]
-        self.addNewPoint(newStartPos)
-        self._points = self._points[::-1]
         self._startPoint = newStartPos
+        # get the end component and it's terminal
+        startComponent = self._start.component
+        componentTerminal = (startComponent.uniqueID, self._start.terminalIndex)
+        if self._startPoint != self._points[0]:
+            # component has been disconnected
+            # remove component from node
+            if self.circuitNode:
+                if componentTerminal in self.circuitNode.componentTerminals:
+                    self.circuitNode.componentTerminals.remove(componentTerminal)
+        else:
+            # component is still connected to the start
+            if self.circuitNode:
+                # only add the component back to the terminal list if it's not already there
+                if componentTerminal not in self.circuitNode.componentTerminals:
+                    self.circuitNode.componentTerminals.append(componentTerminal)
 
     def _onEndComponentMoved(self):
         newEndPos = self._end.component.getTerminalPositions()[self._end.terminalIndex]
-        self.addNewPoint(newEndPos)
         self._endPoint = newEndPos
+        # get the end component and it's terminal
+        endComponent = self._end.component
+        componentTerminal = (endComponent.uniqueID, self._end.terminalIndex)
+        if self._endPoint != self._points[-1]:
+            # component has been disconnected
+            # remove component from node
+            if self.circuitNode:
+                if componentTerminal in self.circuitNode.componentTerminals:
+                    self.circuitNode.componentTerminals.remove(componentTerminal)
+        else:
+            # component is still connected to the end
+            if self.circuitNode:
+                # only add the component back to the terminal list if it's not already there
+                if componentTerminal not in self.circuitNode.componentTerminals:
+                    self.circuitNode.componentTerminals.append(componentTerminal)
 
     def addNewPoint(self, point: QPointF):
         # if point is already in _points, remove all other points after it to clear the wire after that point
@@ -199,18 +233,21 @@ class Wire(QGraphicsItem):
 
     def paint(self, painter: QPainter, option, widget) -> None:
         if self.isSelected():
-            pen = QPen(QColor(50, 205, 50), 3.5)
+            pen = QPen(QColor(50, 205, 50), 3)
         else:
-            pen = QPen(Qt.GlobalColor.darkGray, 2.5)
+            pen = QPen(Qt.GlobalColor.darkGray, 2)
 
         painter.setPen(pen)
         painter.drawPath(self.path())
-        # draw a larger dot at the starting point
         pen.setWidth(6)
         painter.setPen(pen)
-        painter.drawPoint(self._startPoint)
-        # draw a larger dot at the ending point
-        if self._endPoint:
+
+        # draw a larger dot at the starting point if component is still connected to the start
+        if self._startPoint == self._points[0]:
+            painter.drawPoint(self._startPoint)
+
+        # draw a larger dot at the ending point if component is still connected to the end
+        if self._endPoint == self._points[-1]:
             painter.drawPoint(self._endPoint)
 
     def path(self) -> QPainterPath:
