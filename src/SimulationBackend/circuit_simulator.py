@@ -3,11 +3,13 @@ from typing import Dict, Union, Literal, Tuple, List
 from dotenv import load_dotenv
 
 from components.general import GeneralComponent, componentDataType
+from logger import logger
 from .middleware import CircuitNode
 
 from PySpice.Spice.Netlist import Circuit
 
 load_dotenv()
+
 
 componentsInfoType = Dict[
     str, Dict[Literal["data", "node1", "node2"], Union[componentDataType, str]]
@@ -30,7 +32,7 @@ class CircuitSimulator:
         self.extractComponentNodesAndData()
 
     def extractComponentNodesAndData(self):
-        print("[INFO] Extracting Components Information")
+        logger.info("Extracting Components Information")
         self.componentsInfo: componentsInfoType = {}
         for component in self.components.values():
             # add the component data to componentsInfo
@@ -53,11 +55,11 @@ class CircuitSimulator:
             # add single componentInfo to the full componentsInfo variable
             self.componentsInfo[component.uniqueID] = componentInfo
 
-        print("[INFO] Components Information Extracted")
+        logger.info("Components Information Extracted")
         return self.componentsInfo
 
     def createPySpiceCircuit(self):
-        print("[INFO] Creating PySpice Circuit")
+        logger.info("Creating PySpice Circuit")
         # create an instance of the PySpice circuit
         circuit = Circuit("Circuit")
         # add circuit components based on the componentsInfo
@@ -88,11 +90,11 @@ class CircuitSimulator:
                     (V_value, V_unit) = componentInfo.get("data").get("V")
                     circuit.V(componentID, node1, node2, f"{V_value}@u_{V_unit}")
 
-        print("[INFO] PySpice Circuit Created")
+        logger.info("PySpice Circuit Created")
         return circuit
 
     def simulate(self):
-        print("[INFO] Simulating Circuit")
+        logger.info("Simulating Circuit")
         # create a PySpice circuit instance with the component info
         circuit = self.createPySpiceCircuit()
         # create a simulator instance
@@ -101,13 +103,13 @@ class CircuitSimulator:
         try:
             analysis = simulator.operating_point()
         except:
-            print("[ERROR] Circuit Simulation Failed.")
+            logger.exception("Operating point analysis failed.")
             return None
 
         # get the results from the analysis
         results = self.getResultsFromAnalysis(analysis)
 
-        print("[INFO] Circuit Simulated.")
+        logger.info("Circuit Simulated.")
 
         return results
 

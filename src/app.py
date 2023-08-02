@@ -5,7 +5,7 @@ if __name__ == "__main__":
     app = QApplication([])
     window = MainWindow()
     window.show()
-    with open("./styles/app.stylesheet.qss", "r") as f:
+    with open("src/styles/app.stylesheet.qss", "r") as f:
         styles = f.read()
         app.setStyleSheet(styles)
     app.exec()

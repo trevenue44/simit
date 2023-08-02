@@ -13,6 +13,7 @@ from SimulationBackend.middleware import CircuitNode
 from SimulationBackend.circuit_simulator import CircuitSimulator
 
 import constants
+from logger import logger
 
 
 class Canvas(QGraphicsView):
@@ -78,7 +79,7 @@ class Canvas(QGraphicsView):
             comp.signals.componentSelected.connect(self.onComponentSelected)
             comp.signals.componentDeselected.connect(self.onComponentDeselected)
         except Exception as e:
-            print(f"[INFO] Some component signals not connected - Error: {e}")
+            logger.exception("Some component signals not connected")
         self.scene().addItem(comp)
         self.components[comp.uniqueID] = comp
 
@@ -292,7 +293,7 @@ class Canvas(QGraphicsView):
 
         # if wire is not found, log the error and return
         if wire is None:
-            print(f"[ERROR] Wire with uniqueID {uniqueID} not found")
+            logger.error(f"Wire with uniqueID {uniqueID} not found")
             return
 
         # If no wire or terminal is currently selected, start a new wire from the clicked wire.
@@ -377,7 +378,7 @@ class Canvas(QGraphicsView):
         wire_terminals_len = len(wireTerminals)
 
         if wire_terminals_len > 2:
-            print("PROBLEM")
+            logger.critical("More than 2 terminals registered on canvas")
             return
         elif wire_terminals_len == 2:
             return self._handle_wire_short_circuit(wireTerminals)
@@ -462,9 +463,8 @@ class Canvas(QGraphicsView):
         elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 1:
             return self._update_existing_nodes(nodesIntersectedWith)
         elif len(nodesIntersectedWith) == 1 and len(terminalIntersections) == 2:
-            print("PARALLEL CONNECTION")
+            logger.info("Parallel Connection in connection between components")
         elif len(nodesIntersectedWith) == 2 and len(terminalIntersections) == 2:
-            print("SHORT CIRCUIT BETWEEN NODE")
             return self._handle_short_circuit_between_nodes(
                 nodesIntersectedWith, terminalIntersections
             )
@@ -578,7 +578,7 @@ class Canvas(QGraphicsView):
         return QPointF(x, y)
 
     def onSimulateButtonClick(self):
-        print("simulating...")
+        logger.info("Simulating...")
 
         # create a circuit simulator instance with current data
         circuitSimulator = CircuitSimulator(

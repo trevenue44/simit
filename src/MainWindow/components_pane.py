@@ -27,7 +27,7 @@ class ComponentsPane(QtWidgets.QWidget):
 
     def initUI(self):
         # load QSS stylesheet and set that as the stylesheet of the ComponentsPane
-        with open("./styles/components_pane.stylesheet.qss", "r") as f:
+        with open("src/styles/components_pane.stylesheet.qss", "r") as f:
             styleSheet = f.read()
             self.setStyleSheet(styleSheet)
 
