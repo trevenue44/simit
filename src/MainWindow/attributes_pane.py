@@ -33,7 +33,7 @@ class AttributesPane(QWidget):
 
     def initUI(self):
         # load QSS stylesheet and set that as the stylesheet of the attributes pane
-        with open("./styles/attributes_pane.stylesheet.qss", "r") as f:
+        with open("src/styles/attributes_pane.stylesheet.qss", "r") as f:
             styleSheet = f.read()
             self.setStyleSheet(styleSheet)
 
@@ -87,6 +87,9 @@ class AttributesPane(QWidget):
         previewComponent.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
         previewComponent.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
         previewComponent.setAcceptHoverEvents(False)
+        # set the preview component's data to match the selected component's data
+        for property, value in self.selectedComponent.data.items():
+            previewComponent.setComponentData(property, value)
         return previewComponent
 
     def createPreviewSection(self) -> QVBoxLayout:

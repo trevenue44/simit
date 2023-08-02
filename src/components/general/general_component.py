@@ -16,6 +16,8 @@ from ..types import ComponentCategory, componentDataType, simulationResultsType
 
 import constants
 
+from logger import logger
+
 
 class GeneralComponent(QGraphicsItem):
     name: str = ...
@@ -88,7 +90,7 @@ class GeneralComponent(QGraphicsItem):
                 - self.uniqueIDTextItem.boundingRect().height() / 2,
             )
         except Exception as e:
-            print(f"[INFO] Unable to write uniqueID on component - Error: {e}")
+            logger.exception("Unable to write uniqueID on component")
 
     def setComponentData(self, key: str, value: List[str]):
         self.data[key] = value
@@ -111,9 +113,6 @@ class GeneralComponent(QGraphicsItem):
         return super().itemChange(change, value)
 
     def paint(self, painter: QPainter, option, widget) -> None:
-        # print(f"updating component {self.cnt}")
-        # self.cnt += 1
-        # draw circle around the hovered terminal
         if self.hoveredTerminal is not None:
             painter.setPen(QPen(Qt.GlobalColor.white, 1))
             radius = 3

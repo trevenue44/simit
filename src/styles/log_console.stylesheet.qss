@@ -1,0 +1,4 @@
+QTextEdit {
+    background-color: black;
+    padding: 7px;
+}

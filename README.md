@@ -60,8 +60,8 @@ $ pip install -r requirements.txt
 
         DYLD_LIBRARY_PATH=/path/to/dir/containing/file:$DYLD_LIBRARY_PATH
 
-5.  Given that all the requirements are installed, you should now be ready to run the app. Run the app using
+5.  Given that all the requirements are installed, you should now be ready to run the app. Run the app using. Make sure to run the app from the base directory else there might be some issues with the relative paths.
 
 ```shell
-$ python app.py
+$ python src/app.py
 ```
